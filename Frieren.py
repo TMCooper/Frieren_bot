@@ -1,6 +1,7 @@
 from interactions import slash_command, SlashContext, Client, Intents, listen, user_context_menu, Member, OptionType, ContextMenuContext, Message, message_context_menu
 from interactions.api.events import MessageCreate, ChannelCreate
 
+from function.Maid import Maid
 import os
 import subprocess
 from dotenv import load_dotenv 
@@ -23,7 +24,8 @@ bot = Client(intents=Intents.DEFAULT | Intents.MESSAGE_CONTENT)
 async def on_ready():
     # This event is called when the bot is ready to respond to commands
     subprocess.run('cls', shell=True)
-    print(f"Le créateur est : {bot.owner}\n")
+    print(f"Le créateur est : {bot.owner}")
+    print(f"{bot.user} est Réveiller !\n")
 
 
 # .split('{"')[1].split('"}')[0] 
@@ -31,6 +33,8 @@ async def on_ready():
 @listen()
 async def message_create(event: MessageCreate):
     try:
+        if event.message.author == bot.user.id:
+            return  # Skip si le bot envoie un message
         # Accéder au membre qui a envoyé le message
         member = event.message.author  # L'auteur du message
         message_content = event.message.content # Contenu du message
@@ -64,5 +68,14 @@ async def command(ctx: SlashContext, member: Member):
         )
 async def my_command_function(ctx: SlashContext):
     await ctx.send("Hello World")
+
+@slash_command(
+    name="html_scrap", 
+    description="Recupère l'html de google fr"
+    )
+async def html_scrap(ctx: SlashContext):
+    await ctx.send("Scraping...")
+    code = Maid.scrap()
+    await ctx.respond(f"Code d'échange Honkai Star Rail : \n{code}")
 
 bot.start(TOKEN)
