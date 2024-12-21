@@ -1,1 +1,0 @@
-Frieren\Scripts\activate
