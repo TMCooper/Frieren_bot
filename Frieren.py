@@ -70,12 +70,28 @@ async def my_command_function(ctx: SlashContext):
     await ctx.send("Hello World")
 
 @slash_command(
-    name="html_scrap", 
-    description="Recupère l'html de google fr"
+    name="code_honkai_star_rail", 
+    description="Recupère les code d'échange de honkai-star-rail"
     )
-async def html_scrap(ctx: SlashContext):
+async def code_honkai_star_rail(ctx: SlashContext):
     await ctx.send("Scraping...")
     code = Maid.scrap()
     await ctx.respond(f"Code d'échange Honkai Star Rail : \n{code}")
+
+@slash_command(
+    name="test",
+    description="Test",
+    options=[
+        {
+            "name": "Jeux",
+            "description": "Le jeux ou vous souhaité recuperer les code",
+            "required": True,
+            "type": OptionType.STRING,
+            "autocomplete": True,
+        }
+    ],
+)
+async def commande(ctx: SlashContext, string_option: str):
+    await ctx.send(f"You input {string_option}")
 
 bot.start(TOKEN)
