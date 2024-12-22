@@ -1,5 +1,5 @@
 python-dotenv
-discord-py-interactions
 beautifulsoup4
 requests
 selenium
+discord.py
