@@ -5,7 +5,7 @@ from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 
 class Yui:
-    def requet_hsr():
+    def request(URL):
         # Chemins pour ChromeDriver et Chrome
         chrome_driver_path = 'function/chromedriver-win64/chromedriver.exe'  # Remplace par ton chemin ChromeDriver
         chrome_path = r'function/chrome-win64/chrome.exe'  # Chemin vers Chrome
@@ -20,15 +20,13 @@ class Yui:
         chrome_options.add_argument("--disable-webgl")  # Désactiver WebGL pour éviter les erreurs liées à WebGL
         chrome_options.add_argument("--disable-blink-features=AutomationControlled")  # Masquer le mode headless
         chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")  # User-Agent personnalisé
+        chrome_options.add_argument("--log-level=3")
 
         # Lancer le service WebDriver avec Chrome
         service = Service(executable_path=chrome_driver_path)
 
         # Lancer le service WebDriver avec Chrome
         driver = webdriver.Chrome(service=service, options=chrome_options)
-
-        # URL de la page à scraper
-        URL = "https://www.jeuxvideo.com/news/1875084/codes-honkai-star-rail-jades-stellaires-guides-du-voyageur-tous-les-codes-actifs-du-mois-d-avril-2024.htm"
 
         # Chargement de la page
         driver.get(URL)
@@ -45,8 +43,33 @@ class Yui:
         # Utilisation de BeautifulSoup pour parser le contenu HTML
         soup = BeautifulSoup(page_source, 'html.parser')
 
-        # Trouver tous les liens
+        return soup
+
+    def requet_code(jeu):
+
+        # URL de la page à scraper
+        if jeu == "genshin":
+            URL = "https://www.jeuxvideo.com/news/1880539/codes-genshin-impact-primo-gemmes-tous-les-redeem-codes-actifs-en-mai-2024.htm"
+        
+        elif jeu == "hsr":
+            URL = "https://www.jeuxvideo.com/news/1875084/codes-honkai-star-rail-jades-stellaires-guides-du-voyageur-tous-les-codes-actifs-du-mois-d-avril-2024.htm"
+
+        soup = Yui.request(URL)
+
         links = soup.find_all('li')
-        # print(links)
 
         return links
+
+    def valorant_request(pseudo, tag):
+        # URL de la page à scraper
+        URL = f"https://tracker.gg/valorant/profile/riot/{pseudo}%23{tag}/overview"
+        soup = Yui.request(URL)
+
+        return soup
+    
+    def ping_waifu():
+
+        URL = "https://mywaifulist.moe/random"
+        soup = Yui.request(URL)
+        
+        return soup
