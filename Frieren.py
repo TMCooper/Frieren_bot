@@ -3,7 +3,6 @@ from discord import app_commands
 from discord.ext import commands
 import os
 import subprocess
-import asyncio
 from dotenv import load_dotenv
 from function.Maid import Maid
 from function.Eru import Eru
