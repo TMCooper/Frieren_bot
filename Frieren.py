@@ -6,6 +6,7 @@ import subprocess
 from dotenv import load_dotenv
 from function.Maid import Maid
 from function.Eru import Eru
+from function.Rias import Rias
 
 # Chargement des variables d'environnement
 load_dotenv()
@@ -129,6 +130,16 @@ async def waifu(interaction: discord.Interaction):
     embed.add_field(name="Popularity Rank", value=popularity_rank, inline=True)
 
     await interaction.followup.send(embed=embed)
+
+@bot.tree.command(
+    name="rule34",
+    description="Donne une image rule34 avec les tags choisit",
+)
+@app_commands.describe(tags="Les tags pour la recherche")
+async def rule34(interaction: discord.Interaction, tags: str):
+    await interaction.response.defer()
+    image_url = Rias.rule34(tags)
+    await interaction.followup.send(image_url)
 
 # Démarrage du bot
 bot.run(TOKEN)
