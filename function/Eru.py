@@ -29,7 +29,7 @@ class Eru:
         blood_type = blood_type.text.strip() if blood_type else "Non précisé"
 
         waifu_classification = soup.find('span', id='waifu-classification')
-        waifu_classification = waifu_classification.text.strip() if waifu_classification else "Non précisé"
+        waifu_classification = waifu_classification.text.strip() if waifu_classification else "Waifu"
 
         description = soup.find('p', id='description')
         description = description.text.strip() if description else "Non disponible"
