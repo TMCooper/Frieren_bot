@@ -82,7 +82,6 @@ async def code(interaction: discord.Interaction, jeux_entrer: app_commands.Choic
     jeu = jeux_entrer.value.lower()
 
     # envoie une reponse temporaire afin de montrer que le bot traite la commande
-    # await interaction.response.send_message("Frieren réfléchie", ephemeral=True)
     await interaction.response.defer(ephemeral=True)
 
     # appelle la fonction Maid.scrap() pour récupérer les codes
