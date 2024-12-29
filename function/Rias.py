@@ -7,17 +7,21 @@ class Rias:
         page = random.randint(1, 100)
         limitation = random.randint(1, 1000)
         BASE_URL = 'http://api.rule34.xxx/'
-        url = BASE_URL + f'index.php?page=dapi&s=post&q=index&tags={tags}&limit={limitation}, &pid={page}'
+        url = BASE_URL + f'index.php?page=dapi&s=post&q=index&tags={tags}&limit={limitation}&pid={page}'
+        print(url)
+        # url = BASE_URL + f'index.php?page=dapi&s=post&q=index'
 
         # https://api.rule34.xxx//index.php?page=dapi&s=post&q=index&tags=creampie+&limit=100&pid=2
         
         soup = await Yui.request(url)
+        print(soup)
 
         return soup  # Utilise le parser XML
 
     @staticmethod
     def get_image_url(soup):
             posts = soup.find_all('post')  # Trouver tous les éléments <post>
+            print(posts)
             if not posts:
                 return None
             
