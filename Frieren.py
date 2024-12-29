@@ -8,6 +8,7 @@ from function.Maid import Maid
 from function.Eru import Eru
 from function.Yui import Yui
 from function.Rias import Rias
+# import time
 
 # Chargement des variables d'environnement
 load_dotenv()
@@ -66,6 +67,7 @@ async def hello_world(interaction: discord.Interaction):
     await interaction.response.send_message("Hello World")
 
 # Commande : /code
+#commands without selenium
 @bot.tree.command(
     name="code",
     description="Pour obtenir les code d'échange de Genshin ou Honkai star rail",
@@ -85,7 +87,7 @@ async def code(interaction: discord.Interaction, jeux_entrer: app_commands.Choic
     await interaction.response.defer(ephemeral=True)
 
     # appelle la fonction Maid.scrap() pour récupérer les codes
-    code_scrap = Maid.scrap(jeu)
+    code_scrap = await Maid.scrap(jeu)
 
     # envoie le code d'échange
     await interaction.followup.send(f"Code d'échange : \n{code_scrap}")
@@ -99,6 +101,7 @@ async def my_id(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     await interaction.followup.send(f"Votre ID : {interaction.user.id}")
 
+#commands without selenium
 @bot.tree.command(
     name="valorant_rank",
     description="Donne le rank de l'utilisateur sur valorant",
@@ -107,16 +110,17 @@ async def my_id(interaction: discord.Interaction):
 @app_commands.describe(tag="Le tag de l'utilisateur")
 async def valorant_rank(interaction: discord.Interaction, pseudo: str, tag: str):
     await interaction.response.defer(ephemeral=True)
-    rank = Maid.valorant_tracker_rank(pseudo, tag)
+    rank = await Maid.valorant_tracker_rank(pseudo, tag)
     await interaction.followup.send(f"Le rank de {pseudo}#{tag} est : {rank}")
 
+#commands without selenium
 @bot.tree.command(
     name="waifu",
     description="Donne une waifu aléatoire",
 )
 async def waifu(interaction: discord.Interaction):
     await interaction.response.defer()
-    name, alternate_name, age, birthday, height, weight, blood_type, waifu_classification, description, like_rank, popularity_rank, image_url = Eru.random_waifu()
+    name, alternate_name, age, birthday, height, weight, blood_type, waifu_classification, description, like_rank, popularity_rank, image_url = await Eru.random_waifu()
 
     embed = discord.Embed(title=name, description=description, color=discord.Color.blue())
     embed.set_thumbnail(url=image_url)
@@ -132,6 +136,7 @@ async def waifu(interaction: discord.Interaction):
 
     await interaction.followup.send(embed=embed)
 
+#commands without selenium
 @bot.tree.command(
     name="rule34",
     description="Donne une image rule34 avec les tags choisit",
@@ -139,9 +144,12 @@ async def waifu(interaction: discord.Interaction):
 @app_commands.describe(tags="Les tags pour la recherche")
 async def rule34(interaction: discord.Interaction, tags: str):
     await interaction.response.defer()
-    image_url = Rias.rule34(tags)
+    image_url = await Rias.rule34(tags)
     await interaction.followup.send(image_url)
 
 # Démarrage du bot et le serveur web
+# subprocess.run(['python', '-m', 'playwright', 'install']) #pour la cloud version
+# delay = 3000 / 1000  # Convertir millisecondes en secondes
+# time.sleep(delay)  # Pause de 3 secondes
 Yui.alive()
 bot.run(TOKEN)
