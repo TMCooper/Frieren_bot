@@ -1,6 +1,8 @@
 import random
 from function.Yui import Yui
 
+#installer un proxy pour eviter les captcha de r34
+
 class Rias:
     @staticmethod
     async def rule34_request(tags):
