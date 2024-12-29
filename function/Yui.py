@@ -3,6 +3,10 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
+from flask import Flask
+from threading import Thread
+
+app = Flask('')
 
 class Yui:
     def request(URL):
@@ -73,3 +77,15 @@ class Yui:
         soup = Yui.request(URL)
         
         return soup
+    
+    @app.route('/')
+    def lobby():
+        return "Infomation de Yui : Frieren est bien en ligne..."
+    
+    def run():
+        app.run(host='0.0.0.0', port=8080)
+
+    def alive():
+        t = Thread(target=Yui.run)
+        t.start()
+        print("Server lance...")
