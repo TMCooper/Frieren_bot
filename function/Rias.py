@@ -3,7 +3,7 @@ from function.Yui import Yui
 
 class Rias:
     @staticmethod
-    def rule34_request(tags):
+    async def rule34_request(tags):
         page = random.randint(1, 100)
         limitation = random.randint(1, 1000)
         BASE_URL = 'http://api.rule34.xxx/'
@@ -11,7 +11,7 @@ class Rias:
 
         # https://api.rule34.xxx//index.php?page=dapi&s=post&q=index&tags=creampie+&limit=100&pid=2
         
-        soup = Yui.request(url)
+        soup = await Yui.request(url)
 
         return soup  # Utilise le parser XML
 
@@ -43,8 +43,8 @@ class Rias:
         return formattage
 
     @staticmethod
-    def rule34(tags):
-        soup = Rias.rule34_request(tags)
+    async def rule34(tags):
+        soup = await Rias.rule34_request(tags)
         url_images = Rias.get_image_url(soup)
         formatage = Rias.discord_format(url_images, tags)
         return formatage

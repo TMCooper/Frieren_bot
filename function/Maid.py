@@ -1,8 +1,8 @@
 from function.Yui import Yui
 
 class Maid:
-    def scrap(jeu):
-        links = Yui.requet_code(jeu)
+    async def scrap(jeu):
+        links = await Yui.requet_code(jeu)
         codes = []
         # Extraire le texte de chaque lien et chercher le code
         for link in links:
@@ -33,8 +33,8 @@ class Maid:
         # Encapsuler dans des balises Markdown
         return code_discord_version
     
-    def valorant_tracker_rank(pseudo, tag):
-        soup = Yui.valorant_request(pseudo, tag)
+    async def valorant_tracker_rank(pseudo, tag):
+        soup = await Yui.valorant_request(pseudo, tag)
         stat_value = soup.find('span', class_='stat__value')
         if stat_value:
             rank = stat_value.get_text(strip=True)
