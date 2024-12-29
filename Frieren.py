@@ -6,6 +6,7 @@ import subprocess
 from dotenv import load_dotenv
 from function.Maid import Maid
 from function.Eru import Eru
+from function.Yui import Yui
 from function.Rias import Rias
 
 # Chargement des variables d'environnement
@@ -141,5 +142,6 @@ async def rule34(interaction: discord.Interaction, tags: str):
     image_url = Rias.rule34(tags)
     await interaction.followup.send(image_url)
 
-# Démarrage du bot
+# Démarrage du bot et le serveur web
+Yui.alive()
 bot.run(TOKEN)
