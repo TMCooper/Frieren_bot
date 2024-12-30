@@ -1,5 +1,7 @@
 from function.Yui import Yui
 
+# class juste for the command /waifu to scrap the information we need
+
 class Eru:
     @staticmethod
     async def random_waifu():

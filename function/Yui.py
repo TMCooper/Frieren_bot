@@ -1,8 +1,9 @@
 from playwright.async_api import async_playwright
-import requests
 from bs4 import BeautifulSoup
 from flask import Flask
 from threading import Thread
+
+# class bind to all that is of the order of the network and requests
 
 app = Flask('')
 

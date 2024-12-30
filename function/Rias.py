@@ -2,6 +2,7 @@ import random
 from function.Yui import Yui
 
 #installer un proxy pour eviter les captcha de r34
+# class only linked to rule 34
 
 class Rias:
     @staticmethod

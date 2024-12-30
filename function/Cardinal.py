@@ -1,6 +1,7 @@
 import json
 from function.Yui import Yui
 
+# class to manage the folder
 
 class Cardinal:
     async def get_all_games():

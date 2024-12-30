@@ -2,6 +2,7 @@ from function.Yui import Yui
 from playwright.async_api import async_playwright
 import logging
 
+# class linked to all that is scraping
 
 class Maid:
     async def scrap(jeu):

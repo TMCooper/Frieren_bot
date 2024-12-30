@@ -11,6 +11,7 @@ from function.Eru import Eru
 from function.Yui import Yui
 from function.Rias import Rias
 from function.Frieren import Frieren
+from function.Mita import Mita
 
 # Chargement des variables d'environnement
 load_dotenv()
@@ -232,5 +233,6 @@ async def my_id(interaction: discord.Interaction):
 subprocess.run(['python', '-m', 'playwright', 'install']) #pour la cloud version
 delay = 3000 / 1000  # Convertir millisecondes en secondes
 time.sleep(delay)  # Pause de 3 secondes
+Mita.debug_game()
 Yui.alive()
 bot.run(TOKEN)

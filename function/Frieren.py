@@ -3,6 +3,8 @@ from function.Maid import Maid
 import os
 from dotenv import load_dotenv
 
+# class to centralize functions linked to speedrun
+
 load_dotenv() 
 DEV_ID = os.getenv('DEV_ID')
 
