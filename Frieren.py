@@ -219,20 +219,28 @@ async def speedrun(interaction: discord.Interaction, jeu: str):
 
 # commande a retapper car étrangement long même si le test.py
 @bot.tree.command(
-    name="refresh_speedrun",
-    description="Actualise toute la base de speedrun",
+    name="games_file",
+    description="Vérifie si le fichier des jeux est accessible.",
 )
-async def my_id(interaction: discord.Interaction):
-    
+async def games_file(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     user_id = interaction.user.id
-    reponse = await Frieren.speedrun_refresh(user_id)
-    await interaction.followup.send(reponse)
+
+    # Vérifie si le fichier existe
+    games_file_exists = await Mita.debug_game(user_id)
+    
+    # Vérifie la valeur retournée par debug_game
+    if games_file_exists is True:
+        await interaction.followup.send("Le fichier des jeux est accessible.")
+    elif games_file_exists is False:
+        await interaction.followup.send("Le fichier des jeux est introuvable ou illisible.")
+    else:  # Si un message est retourné (par exemple, utilisateur non autorisé)
+        await interaction.followup.send(games_file_exists)
+
 
 # Démarrage du bot et le serveur web
 subprocess.run(['python', '-m', 'playwright', 'install']) #pour la cloud version
 delay = 3000 / 1000  # Convertir millisecondes en secondes
 time.sleep(delay)  # Pause de 3 secondes
-Mita.debug_game()
 Yui.alive()
 bot.run(TOKEN)
