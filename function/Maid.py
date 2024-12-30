@@ -46,103 +46,173 @@ class Maid:
         else:
             return "Rank not found"
 
+    # @staticmethod
+    # async def speedrun_scrap(jeu, games):
+    #     logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
+        
+    #     # Parcours des jeux pour trouver celui correspondant
+    #     for game in games:
+    #         if game["title"].lower() == jeu.lower():
+    #             game_url = game["link"]
+                
+    #             try:
+    #                 async with async_playwright() as p:
+    #                     # Lancer le navigateur
+    #                     browser = await p.chromium.launch(headless=True)
+    #                     page = await browser.new_page()
+
+    #                     # Accéder à la page du jeu
+    #                     await page.goto(game_url)
+
+    #                     # Attendre que la page soit complètement chargée
+    #                     await page.wait_for_timeout(3000)  # Attente de 3 secondes
+
+    #                     try:
+    #                         # Chercher plusieurs variations de texte pour le bouton de consentement
+    #                         consent_button = await page.query_selector('button:has-text("Accepter")') or await page.query_selector('button:has-text("J\'ACCEPTE")')
+
+    #                         # Si un bouton est trouvé, essayer de cliquer dessus
+    #                         if consent_button:
+    #                             await consent_button.click()
+    #                             logging.info('Fenêtre de consentement fermée.')
+    #                         else:
+    #                             logging.info('Aucune fenêtre de consentement trouvée.')
+
+    #                     except Exception as e:
+    #                         logging.warning(f"Erreur lors de la fermeture de la fenêtre de consentement: {str(e)}")
+
+    #                     # Extraire l'image de couverture
+    #                     game_img_url = await page.get_attribute('img.object-cover', 'src')
+    #                     if not game_img_url:
+    #                         game_img_url = "Image non trouvée"
+
+    #                     # Reconstituer l'URL de l'image si elle est relative
+    #                     if game_img_url.startswith('/'):
+    #                         game_img_url = f"https://www.speedrun.com{game_img_url}"
+
+    #                     # Chercher le bouton correspondant à "Any%" et cliquer dessus
+    #                     any_percent_button = await page.query_selector('button:has-text("Any%")')
+                        
+    #                     if any_percent_button:
+    #                         await any_percent_button.click()
+    #                         logging.info('Clic sur le bouton "Any%" effectué.')
+
+    #                         # Attendre que la page soit actualisée
+    #                         await page.wait_for_timeout(3000)
+
+    #                         # Extraire les résultats des top 3 joueurs
+    #                         results = []
+    #                         rows = await page.query_selector_all('tr.cursor-pointer')
+    #                         for row in rows[:3]:  # Limiter aux 3 premiers résultats
+    #                             rank_img = await row.query_selector('td img[alt]')
+    #                             rank = await rank_img.get_attribute('alt') if rank_img else "N/A"
+                                
+    #                             player_link = await row.query_selector('a.x-username')
+    #                             player_name = await player_link.inner_text() if player_link else "N/A"
+                                
+    #                             country_img = await player_link.query_selector('img[alt]') if player_link else None
+    #                             country = await country_img.get_attribute('alt') if country_img else "N/A"
+                                
+    #                             time_link = await row.query_selector('a[href*="runs"] span span span span')
+    #                             time = await time_link.inner_text() if time_link else "N/A"
+                                
+    #                             date_span = await row.query_selector('.x-timestamp')
+    #                             date = await date_span.inner_text() if date_span else "N/A"
+                                
+    #                             # Ajouter le résultat au tableau
+    #                             results.append({
+    #                                 "Rank": rank,
+    #                                 "Player": player_name,
+    #                                 "Country": country,
+    #                                 "Time": time,
+    #                                 "Date": date
+    #                             })
+
+    #                         # Fermer le navigateur après l'extraction des données
+    #                         await browser.close()
+
+    #                         # Retourner les résultats
+    #                         return {
+    #                             "Image URL": game_img_url,
+    #                             "Top Results": results if results else "Top speedrun non trouvé pour cette catégorie."
+    #                         }
+    #                     else:
+    #                         await browser.close()
+    #                         return "Catégorie 'Any%' non trouvée."
+
+    #             except Exception as e:
+    #                 logging.error(f"Erreur lors du scraping de la page : {str(e)}")
+    #                 return f"Erreur lors du scraping de la page : {str(e)}"
+
+    #     return "Jeu non trouvé."
+
     @staticmethod
     async def speedrun_scrap(jeu, games):
         logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
         
-        # Parcours des jeux pour trouver celui correspondant
         for game in games:
             if game["title"].lower() == jeu.lower():
                 game_url = game["link"]
                 
                 try:
                     async with async_playwright() as p:
-                        # Lancer le navigateur
                         browser = await p.chromium.launch(headless=True)
                         page = await browser.new_page()
-
-                        # Accéder à la page du jeu
                         await page.goto(game_url)
+                        
+                        # Attendre que la page charge complètement
+                        await page.wait_for_load_state("domcontentloaded")
 
-                        # Attendre que la page soit complètement chargée
-                        await page.wait_for_timeout(3000)  # Attente de 3 secondes
-
+                        # Essayer de fermer la bannière RGPD
                         try:
-                            # Chercher plusieurs variations de texte pour le bouton de consentement
-                            consent_button = await page.query_selector('button:has-text("Accepter")') or await page.query_selector('button:has-text("J\'ACCEPTE")')
-
-                            # Si un bouton est trouvé, essayer de cliquer dessus
+                            await page.evaluate('''() => {
+                                const blockingElement = document.querySelector('.qc-cmp-cleanslate');
+                                if (blockingElement) blockingElement.style.display = 'none';
+                            }''')
+                            consent_button = await page.query_selector('button:has-text("Accepter")')
                             if consent_button:
                                 await consent_button.click()
-                                logging.info('Fenêtre de consentement fermée.')
+                                logging.info("Bannière de consentement fermée.")
                             else:
-                                logging.info('Aucune fenêtre de consentement trouvée.')
-
+                                logging.info("Aucune bannière de consentement trouvée.")
                         except Exception as e:
-                            logging.warning(f"Erreur lors de la fermeture de la fenêtre de consentement: {str(e)}")
+                            logging.warning(f"Erreur fermeture consentement : {str(e)}")
 
-                        # Extraire l'image de couverture
-                        game_img_url = await page.get_attribute('img.object-cover', 'src')
-                        if not game_img_url:
-                            game_img_url = "Image non trouvée"
-
-                        # Reconstituer l'URL de l'image si elle est relative
+                        # Récupérer l'image et les résultats
+                        game_img_url = await page.get_attribute('img.object-cover', 'src') or "Image non trouvée"
                         if game_img_url.startswith('/'):
                             game_img_url = f"https://www.speedrun.com{game_img_url}"
 
-                        # Chercher le bouton correspondant à "Any%" et cliquer dessus
-                        any_percent_button = await page.query_selector('button:has-text("Any%")')
-                        
-                        if any_percent_button:
-                            await any_percent_button.click()
-                            logging.info('Clic sur le bouton "Any%" effectué.')
+                        # Chercher "Any%" et cliquer
+                        try:
+                            any_percent_button = await page.query_selector('button:has-text("Any%")')
+                            if any_percent_button:
+                                await any_percent_button.click()
+                                await page.wait_for_timeout(3000)
 
-                            # Attendre que la page soit actualisée
-                            await page.wait_for_timeout(3000)
-
-                            # Extraire les résultats des top 3 joueurs
-                            results = []
-                            rows = await page.query_selector_all('tr.cursor-pointer')
-                            for row in rows[:3]:  # Limiter aux 3 premiers résultats
-                                rank_img = await row.query_selector('td img[alt]')
-                                rank = await rank_img.get_attribute('alt') if rank_img else "N/A"
-                                
-                                player_link = await row.query_selector('a.x-username')
-                                player_name = await player_link.inner_text() if player_link else "N/A"
-                                
-                                country_img = await player_link.query_selector('img[alt]') if player_link else None
-                                country = await country_img.get_attribute('alt') if country_img else "N/A"
-                                
-                                time_link = await row.query_selector('a[href*="runs"] span span span span')
-                                time = await time_link.inner_text() if time_link else "N/A"
-                                
-                                date_span = await row.query_selector('.x-timestamp')
-                                date = await date_span.inner_text() if date_span else "N/A"
-                                
-                                # Ajouter le résultat au tableau
-                                results.append({
-                                    "Rank": rank,
-                                    "Player": player_name,
-                                    "Country": country,
-                                    "Time": time,
-                                    "Date": date
-                                })
-
-                            # Fermer le navigateur après l'extraction des données
+                                # Extraire les résultats
+                                results = []
+                                rows = await page.query_selector_all('tr.cursor-pointer')
+                                for row in rows[:3]:
+                                    results.append({
+                                        "Rank": await row.query_selector('td img[alt]').get_attribute('alt') or "N/A",
+                                        "Player": await row.query_selector('a.x-username').inner_text() or "N/A",
+                                        "Country": await row.query_selector('a.x-username img[alt]').get_attribute('alt') or "N/A",
+                                        "Time": await row.query_selector('a[href*="runs"] span span span span').inner_text() or "N/A",
+                                        "Date": await row.query_selector('.x-timestamp').inner_text() or "N/A",
+                                    })
+                                await browser.close()
+                                return {"Image URL": game_img_url, "Top Results": results}
+                            else:
+                                logging.warning("Catégorie 'Any%' non trouvée.")
+                                await browser.close()
+                                return "Catégorie 'Any%' non trouvée."
+                        except Exception as e:
+                            logging.error(f"Erreur lors de la recherche des résultats : {str(e)}")
                             await browser.close()
-
-                            # Retourner les résultats
-                            return {
-                                "Image URL": game_img_url,
-                                "Top Results": results if results else "Top speedrun non trouvé pour cette catégorie."
-                            }
-                        else:
-                            await browser.close()
-                            return "Catégorie 'Any%' non trouvée."
-
+                            return "Erreur lors de la recherche des résultats."
                 except Exception as e:
-                    logging.error(f"Erreur lors du scraping de la page : {str(e)}")
-                    return f"Erreur lors du scraping de la page : {str(e)}"
+                    logging.error(f"Erreur scraping : {str(e)}")
+                    return f"Erreur scraping : {str(e)}"
 
         return "Jeu non trouvé."
-
