@@ -54,7 +54,7 @@ class Maid:
         for game in games:
             if game["title"].lower() == jeu.lower():
                 game_url = game["link"]
-                
+                print(game_url)
                 try:
                     async with async_playwright() as p:
                         # Lancer le navigateur
@@ -65,7 +65,7 @@ class Maid:
                         await page.goto(game_url)
 
                         # Attendre que la page soit complètement chargée
-                        await page.wait_for_timeout(3000)  # Attente de 3 secondes
+                        await page.wait_for_timeout(5000)  # Attente de 3 secondes
 
                         try:
                             # Chercher plusieurs variations de texte pour le bouton de consentement
@@ -98,7 +98,7 @@ class Maid:
                             logging.info('Clic sur le bouton "Any%" effectué.')
 
                             # Attendre que la page soit actualisée
-                            await page.wait_for_timeout(3000)
+                            await page.wait_for_timeout(5000)
 
                             # Extraire les résultats des top 3 joueurs
                             results = []
