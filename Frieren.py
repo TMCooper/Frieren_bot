@@ -216,7 +216,7 @@ async def speedrun(interaction: discord.Interaction, jeu: str):
         await interaction.followup.send(embed=embed)
 
 
-
+# commande a retapper car étrangement long même si le test.py
 @bot.tree.command(
     name="refresh_speedrun",
     description="Actualise toute la base de speedrun",
