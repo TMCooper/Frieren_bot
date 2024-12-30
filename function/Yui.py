@@ -1,7 +1,9 @@
 from playwright.async_api import async_playwright
 from bs4 import BeautifulSoup
-from flask import Flask
+from flask import Flask, request, jsonify
 from threading import Thread
+import asyncio
+from function.Maid import Maid
 
 # class bind to all that is of the order of the network and requests
 
@@ -84,6 +86,20 @@ class Yui:
     def lobby():
         return "Infomation de Yui : Frieren est bien en ligne..."
     
+    @app.route('/debug/speedrun', methods=['POST'])
+    def debug_speedrun(jeu, games):
+        # Récupère le nom du jeu depuis la requête
+        data = request.json
+        jeu = data.get("jeu", "")
+
+        # Appelle la fonction asynchrone en synchronisation
+        async def run_speedrun_scrap():
+            return await Maid.speedrun_scrap(jeu, games)
+
+        # Exécute la coroutine et récupère les résultats
+        result = asyncio.run(run_speedrun_scrap())
+        return jsonify(result)
+
     def run():
         app.run(host='0.0.0.0', port=8080)
 
