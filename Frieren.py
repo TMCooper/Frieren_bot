@@ -3,12 +3,14 @@ from discord import app_commands
 from discord.ext import commands
 import os
 import subprocess
+import datetime
+import time
 from dotenv import load_dotenv
 from function.Maid import Maid
 from function.Eru import Eru
 from function.Yui import Yui
 from function.Rias import Rias
-import time
+from function.Frieren import Frieren
 
 # Chargement des variables d'environnement
 load_dotenv()
@@ -144,6 +146,87 @@ async def rule34(interaction: discord.Interaction, tags: str):
     await interaction.response.defer()
     image_url = await Rias.rule34(tags)
     await interaction.followup.send(image_url)
+
+@bot.tree.command(
+    name="speedrun",
+    description="Affiche le classement mondial des speedruns Any% pour le jeu de votre choix"
+)
+@app_commands.describe(jeu="Nom du jeu dont vous voulez voir les records")
+async def speedrun(interaction: discord.Interaction, jeu: str):
+    await interaction.response.defer()
+    top_speedrun_data = await Frieren.speedrun_main(jeu)
+    if top_speedrun_data == "None":
+        await interaction.followup.send("Fichier introuvable. demander au créateur d'utiliser la ``/refresh_speedrun`` pour le créer.")
+
+    elif top_speedrun_data != "None":
+        # Création de l'embed avec un style amélioré
+        embed = discord.Embed(
+            title=f"🏃‍♂️ Classement Mondial Speedrun Any% 🏆",
+            description=f"**{jeu}**",
+            color=discord.Color.gold()  # Couleur or pour un aspect plus premium
+        )
+
+        # Ajout de l'image du jeu avec une taille optimisée
+        if 'Image URL' in top_speedrun_data:
+            embed.set_thumbnail(url=top_speedrun_data['Image URL'])
+
+        # Ajout d'informations supplémentaires dans l'en-tête
+        embed.add_field(
+            name="ℹ️ Informations",
+            value="Classement basé sur les meilleurs temps en Any%\nMis à jour régulièrement via speedrun.com",
+            inline=False
+        )
+
+        # Création du classement avec des emojis pour les médailles
+        if 'Top Results' in top_speedrun_data:
+            # On garde le tri par rang plutôt que par nom de joueur pour un vrai classement
+            medals = {
+                "1er": "🥇",
+                "2ème": "🥈",
+                "3ème": "🥉"
+            }
+            
+            for rank in top_speedrun_data['Top Results']:
+                medal = medals.get(rank['Rank'], "🎮")
+                
+                # Formatage amélioré des informations de chaque run
+                time_formatted = f"⏱️ {rank['Time']}"
+                date_formatted = f"📅 {rank['Date']}"
+                
+                embed.add_field(
+                    name=f"{medal} {rank['Rank']} Place",
+                    value=(
+                        f"👤 **{rank['Player']}** ({rank['Country']})\n"
+                        f"{time_formatted}\n"
+                        f"{date_formatted}\n"
+                        "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄"  # Séparateur décoratif
+                    ),
+                    inline=False
+                )
+
+        # Pied de page amélioré
+        embed.set_footer(
+            text="Données fournies par speedrun.com | Utilisez /speedrun <jeu> pour voir d'autres classements",
+            icon_url="https://www.speedrun.com/favicon.ico"  # Icône de speedrun.com
+        )
+
+        # Timestamp pour montrer quand les données ont été récupérées
+        embed.timestamp = datetime.datetime.utcnow()
+
+        await interaction.followup.send(embed=embed)
+
+
+
+@bot.tree.command(
+    name="refresh_speedrun",
+    description="Actualise toute la base de speedrun",
+)
+async def my_id(interaction: discord.Interaction):
+    
+    await interaction.response.defer(ephemeral=True)
+    user_id = interaction.user.id
+    reponse = await Frieren.speedrun_refresh(user_id)
+    await interaction.followup.send(reponse)
 
 # Démarrage du bot et le serveur web
 subprocess.run(['python', '-m', 'playwright', 'install']) #pour la cloud version
