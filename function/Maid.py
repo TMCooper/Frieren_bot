@@ -1,8 +1,6 @@
 from function.Yui import Yui
 from playwright.async_api import async_playwright
 import logging
-import asyncio
-
 
 # class linked to all that is scraping
 
