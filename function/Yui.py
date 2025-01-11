@@ -82,8 +82,8 @@ class Yui:
         
         return soup
     
-    @app.route('/lobby')
-    def lobby():
+    @app.route('/')
+    def home():
         return "Infomation de Yui : Frieren est bien en ligne..."
 
     def run():
