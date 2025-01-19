@@ -238,6 +238,8 @@ async def rule34(interaction: discord.Interaction, tags: str):
 #         await interaction.followup.send(games_file_exists)
 
 
+
+
 # Démarrage du bot et le serveur web
 subprocess.run(['python', '-m', 'playwright', 'install']) #pour la cloud version
 delay = 3000 / 1000  # Convertir millisecondes en secondes
