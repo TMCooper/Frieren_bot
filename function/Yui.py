@@ -1,9 +1,7 @@
 from playwright.async_api import async_playwright
 from bs4 import BeautifulSoup
-from flask import Flask, request, jsonify
+from flask import Flask
 from threading import Thread
-import logging
-import asyncio
 
 # class bind to all that is of the order of the network and requests
 
