@@ -91,9 +91,4 @@ class Yui:
         t = Thread(target=Yui.run)
         t.start()
         print("Server lance...")
-
-    def kill():
-        app.stop()
-        print("Server stoppé...")
-        t = Thread(target=Yui.run)
         
