@@ -27,6 +27,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
+    subprocess.run('cls', shell=True)
     print(f"{bot.user} est Réveillé !\n")
     print(f"ID du serveur configuré : {DEV_GUILD_ID}")
 
