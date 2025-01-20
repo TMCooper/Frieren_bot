@@ -263,10 +263,9 @@ async def rule34(interaction: discord.Interaction, tags: str):
     app_commands.Choice(name="Suédois", value="sv")
 ])
 async def translate(interaction: discord.Interaction, phrase: str, langues: app_commands.Choice[str]):
-    langue = langues.value
     await interaction.response.defer()
-    formated_traduction, prononce = await Holo.Translate(phrase, langue)
-    await interaction.followup.send(f'Phrase : ``{phrase}`` Vers : ``{langue}`` \n Traduction : ``{formated_traduction}`` \n Prononciation : ``{prononce}``')
+    formated_traduction, prononce = await Holo.Translate(phrase, langues.value)
+    await interaction.followup.send(f'Phrase : ``{phrase}`` Vers : ``{langues.name}`` \n Traduction : ``{formated_traduction}`` \n Prononciation : ``{prononce}``')
 
 @bot.tree.command(
     name="shutdown",
@@ -276,6 +275,16 @@ async def translate(interaction: discord.Interaction, phrase: str, langues: app_
 async def shudown(interaction: discord.Interaction):
     await interaction.response.defer()
     msg = await Holo.shutdown(bot, interaction.user.id, interaction)
+    if msg:
+        await interaction.followup.send(msg)
+    
+@bot.tree.command(
+    name="reboot",
+    description="redémarre le bot",
+)
+async def reboot(interaction: discord.Interaction):
+    await interaction.response.defer()
+    msg = await Holo.reboot(bot, interaction.user.id, interaction)
     if msg:
         await interaction.followup.send(msg)
 
