@@ -1,6 +1,7 @@
 import os
+import sys
 from dotenv import load_dotenv
-from googletrans import Translator
+from googletrans import Translator # type: ignore
 import signal
 from function.Yui import *
 
@@ -11,9 +12,9 @@ DEV_ID = os.getenv('DEV_ID')
 
 class Holo:
     async def shutdown(bot, ID, interaction):
-        print(f"ID : {ID} DEV_ID : {DEV_ID}")
+        # print(f"ID : {ID} DEV_ID : {DEV_ID}")
         if int(ID) == int(DEV_ID):
-            await interaction.followup.send("Le bot va se fermer...") # Envoyer un message au bot sur Discord
+            await interaction.followup.send("Le bot se ferme...") # Envoyer un message au bot sur Discord
 
             await bot.close()  # Fermer le bot proprement
             print("Bot has been shut down. Sending Ctrl+C signal...")
@@ -24,6 +25,21 @@ class Holo:
         else:
             print("Unauthorized attempt to shut down the bot.")
             return "Non autorisé à down le bot."
+
+    async def reboot(bot, ID, interaction):
+        # print(f"ID : {ID} DEV_ID : {DEV_ID}")
+        if int(ID) == int(DEV_ID):
+            # Envoyer un message confirmant le redémarrage
+            await interaction.followup.send("Le bot redémare...")
+            await bot.close()  # Fermer le bot proprement
+            print("Bot has been shut down. Restarting...")
+                    
+            # Relancer le script
+            os.execv(sys.executable, ['python'] + sys.argv)
+        else:
+            # Si l'utilisateur n'est pas autorisé
+            await interaction.followup.send("Vous n'êtes pas autorisé à redémarrer ce bot.")
+        return False
 
     async def Translate(phrase, langue):
         trad = translator.translate(phrase, dest=langue)
