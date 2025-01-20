@@ -10,13 +10,15 @@ from function.Maid import Maid
 from function.Eru import Eru
 from function.Yui import Yui
 from function.Rias import Rias
+from function.Holo import Holo
 # from function.Frieren import Frieren
 # from function.Mita import Mita
 
 # Chargement des variables d'environnement
 load_dotenv()
-TOKEN = os.getenv('TOKEN')
+TOKEN = os.getenv('TOKEN_DEV')
 DEV_GUILD_ID = int(os.getenv('DEV_GUILD_ID'))
+DEV_ID = int(os.getenv('DEV_GUILD_ID'))
 
 # Configuration du bot
 intents = discord.Intents.all()
@@ -25,6 +27,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
+    subprocess.run('cls', shell=True)
     print(f"{bot.user} est Réveillé !\n")
     print(f"ID du serveur configuré : {DEV_GUILD_ID}")
 
@@ -237,6 +240,54 @@ async def rule34(interaction: discord.Interaction, tags: str):
 #     else:  # Si un message est retourné (par exemple, utilisateur non autorisé)
 #         await interaction.followup.send(games_file_exists)
 
+@bot.tree.command(
+    name="translate",
+    description="Traduit une phrase dans la langue de votre choix",
+)
+@app_commands.describe(phrase="Phrase à traduire")
+@app_commands.describe(langues="Langues disponibles : Japonais, Français, Anglais, Espagnole, Allemand, Chinois, Italien, Russe, Portugais, Polonais, Catalan, Grecque, Danois, Hollandais, Suédois")
+@app_commands.choices(langues=[
+    app_commands.Choice(name="Japonais", value="ja"),
+    app_commands.Choice(name="Français", value="fr"),
+    app_commands.Choice(name="Anglais", value="en"),
+    app_commands.Choice(name="Espagnole", value="es"),
+    app_commands.Choice(name="Allemand", value="de"),
+    app_commands.Choice(name="Chinois", value="zh-CN"),
+    app_commands.Choice(name="Italien", value="it"),
+    app_commands.Choice(name="Russe", value="ru"),
+    app_commands.Choice(name="Portugaisse", value="pt-BR"),
+    app_commands.Choice(name="Polonais", value="pl"),
+    app_commands.Choice(name="Catalan", value="ca"),
+    app_commands.Choice(name="Grecque", value="el"),
+    app_commands.Choice(name="Danois", value="da"),
+    app_commands.Choice(name="Hollandais", value="nl"),
+    app_commands.Choice(name="Suédois", value="sv")
+])
+async def translate(interaction: discord.Interaction, phrase: str, langues: app_commands.Choice[str]):
+    await interaction.response.defer()
+    formated_traduction, prononce = await Holo.Translate(phrase, langues.value)
+    await interaction.followup.send(f'Phrase : ``{phrase}`` Vers : ``{langues.name}`` \n Traduction : ``{formated_traduction}`` \n Prononciation : ``{prononce}``')
+
+@bot.tree.command(
+    name="shutdown",
+    description="down le bot",
+)
+
+async def shudown(interaction: discord.Interaction):
+    await interaction.response.defer()
+    msg = await Holo.shutdown(bot, interaction.user.id, interaction)
+    if msg:
+        await interaction.followup.send(msg)
+    
+@bot.tree.command(
+    name="reboot",
+    description="redémarre le bot",
+)
+async def reboot(interaction: discord.Interaction):
+    await interaction.response.defer()
+    msg = await Holo.reboot(bot, interaction.user.id, interaction)
+    if msg:
+        await interaction.followup.send(msg)
 
 # Démarrage du bot et le serveur web
 subprocess.run(['python', '-m', 'playwright', 'install']) #pour la cloud version
