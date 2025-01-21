@@ -16,7 +16,7 @@ from function.Holo import Holo
 
 # Chargement des variables d'environnement
 load_dotenv()
-TOKEN = os.getenv('TOKEN_DEV')
+TOKEN = os.getenv('TOKEN')
 DEV_GUILD_ID = int(os.getenv('DEV_GUILD_ID'))
 DEV_ID = int(os.getenv('DEV_GUILD_ID'))
 
