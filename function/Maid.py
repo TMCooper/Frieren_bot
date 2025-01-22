@@ -1,6 +1,8 @@
 from function.Yui import Yui
 from playwright.async_api import async_playwright
+import json
 import logging
+import os
 
 # class linked to all that is scraping
 
@@ -145,4 +147,60 @@ class Maid:
                     return f"Erreur lors du scraping de la page : {str(e)}"
 
         return "Jeu non trouvé."
+    
+    async def voiranime_scrap_catalogue():
+        i = 1 
+        while True:
+            # Boucle infinie pour récupérer les données du catalogue de VoiAnime
+            URL = f"https://v6.voiranime.com/liste-danimes/page/{i}"
 
+            # Obtenir le contenu de la page
+            soup = await Yui.ping_voiranime_catalogue(URL)
+
+            # Vérifier si la page contient le message "Nothing Found"
+            nothing_found = soup.find('h1', class_='page-title', string="Nothing Found")
+            if nothing_found:
+                print(f"Fin de la pagination atteinte à la page {i}.")
+                break
+
+            # Extraire la liste des animes
+            titres = soup.find_all('h3', class_='h5')
+
+            titre_animes = []
+            links = []
+
+            # Vérifier si le fichier existe déjà
+            anime_file = "anime.json"
+            if os.path.exists(anime_file):
+                with open(anime_file, "r", encoding="utf-8") as f:
+                    anime_data = json.load(f)
+            else:
+                anime_data = []
+
+            for titre in titres:
+                # Extraire le titre de l'anime
+                titre_anime = titre.get_text(strip=True)
+                titre_animes.append(titre_anime)
+
+                # Extraire le lien de l'anime
+                link = titre.find('a', href=True)
+                if link:
+                    link = link['href']
+                    links.append(link)
+                else:
+                    link = "N/A"
+
+                # Ajouter les données dans le fichier JSON
+                anime_entry = {
+                    "anime_name": titre_anime,
+                    "lien": link
+                }
+                anime_data.append(anime_entry)
+
+            # Écrire dans le fichier JSON
+            with open(anime_file, "w", encoding="utf-8") as f:
+                json.dump(anime_data, f, ensure_ascii=False, indent=4)
+            
+            i += 1
+
+        return titre_animes, links
