@@ -289,6 +289,19 @@ async def reboot(interaction: discord.Interaction):
     if msg:
         await interaction.followup.send(msg)
 
+@bot.tree.command(
+    name="anime_refresh",
+    description="Rafraîchit les données des animes",
+)
+async def anime_refresh(interaction: discord.Interaction):
+    await interaction.response.defer()
+    if(interaction.user.id == DEV_ID):
+        await Maid.voiranime_scrap_catalogue()
+    else:
+        await interaction.followup.send("Seul le développeur peut utiliser cette commande.")
+
+
+
 # Démarrage du bot et le serveur web
 subprocess.run(['python', '-m', 'playwright', 'install']) #pour la cloud version
 delay = 3000 / 1000  # Convertir millisecondes en secondes
