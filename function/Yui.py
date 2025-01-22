@@ -80,6 +80,11 @@ class Yui:
         
         return soup
     
+    async def ping_voiranime_catalogue(URL):
+        soup = await Yui.request(URL)
+        
+        return soup
+
     @app.route('/')
     def home():
         return "Infomation de Yui : Frieren est bien en ligne..."
