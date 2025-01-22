@@ -2,6 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 import os
+import json
 import subprocess
 # import datetime
 import time
@@ -11,6 +12,7 @@ from function.Eru import Eru
 from function.Yui import Yui
 from function.Rias import Rias
 from function.Holo import Holo
+from function.AnimeView import *
 # from function.Frieren import Frieren
 # from function.Mita import Mita
 
@@ -300,6 +302,43 @@ async def anime_refresh(interaction: discord.Interaction):
     else:
         await interaction.followup.send("Seul le développeur peut utiliser cette commande.")
 
+@bot.tree.command(
+    name="anime_search",
+    description="Rechercher un anime par son nom"
+)
+@app_commands.describe(query="Nom de l'anime à rechercher")
+async def anime_search(interaction: discord.Interaction, query: str):
+    await interaction.response.defer()
+
+    try:
+        with open("anime.json", "r", encoding="utf-8") as file:
+            anime_data = json.load(file)
+        
+        # Filtrer les résultats pour limiter à 25 choix maximum
+        matching_animes = [
+            anime for anime in anime_data 
+            if query.lower() in anime["anime_name"].lower()
+        ][:25]  # Limite à 25 choix
+        
+        if not matching_animes:
+            await interaction.followup.send(
+                f"Aucun anime trouvé pour '{query}'. Essayez avec un autre nom.",
+                ephemeral=True
+            )
+            return
+        
+        view = AnimeView(matching_animes)
+        await interaction.followup.send(
+            content=f"📺 J'ai trouvé {len(matching_animes)} résultats pour '{query}'.\nSélectionnez un anime dans la liste déroulante :",
+            view=view
+        )
+        
+    except Exception as e:
+        await interaction.followup.send(
+            "Une erreur s'est produite lors de la recherche. Veuillez réessayer.",
+            ephemeral=True
+        )
+        print(f"Erreur: {e}")
 
 
 # Démarrage du bot et le serveur web
