@@ -1,7 +1,6 @@
 from function.Yui import Yui
 from playwright.async_api import async_playwright
 from dotenv import load_dotenv
-from bs4 import BeautifulSoup
 import json
 import logging
 import os
