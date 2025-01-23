@@ -2,6 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 import os
+import json
 import subprocess
 # import datetime
 import time
@@ -11,6 +12,7 @@ from function.Eru import Eru
 from function.Yui import Yui
 from function.Rias import Rias
 from function.Holo import Holo
+from function.AnimeView import *
 # from function.Frieren import Frieren
 # from function.Mita import Mita
 
@@ -18,7 +20,7 @@ from function.Holo import Holo
 load_dotenv()
 TOKEN = os.getenv('TOKEN')
 DEV_GUILD_ID = int(os.getenv('DEV_GUILD_ID'))
-DEV_ID = int(os.getenv('DEV_GUILD_ID'))
+DEV_ID = int(os.getenv('DEV_ID'))
 
 # Configuration du bot
 intents = discord.Intents.all()
@@ -288,6 +290,61 @@ async def reboot(interaction: discord.Interaction):
     msg = await Holo.reboot(bot, interaction.user.id, interaction)
     if msg:
         await interaction.followup.send(msg)
+
+@bot.tree.command(
+    name="anime_refresh",
+    description="Rafraîchit les données des animes",
+)
+async def anime_refresh(interaction: discord.Interaction):
+    msg = await Maid.voiranime_scrap_catalogue(interaction.user.id, interaction)
+    if msg == None:
+        await interaction.response.send_message("Seul le développeur peut utiliser cette commande.")
+
+@bot.tree.command(
+    name="anime_search",
+    description="Rechercher un anime par son nom"
+)
+@app_commands.describe(nom="Nom de l'anime à rechercher")
+async def anime_search(interaction: discord.Interaction, nom: str):
+    await interaction.response.defer()
+
+    try:
+        with open("anime.json", "r", encoding="utf-8") as file:
+            anime_data = json.load(file)
+        
+        matching_animes = [
+            anime for anime in anime_data 
+            if nom.lower() in anime["anime_name"].lower()
+        ]
+        
+        if not matching_animes:
+            await interaction.followup.send(
+                f"❌ Aucun anime trouvé pour '{nom}'. Essayez avec un autre nom.",
+                ephemeral=True
+            )
+            return
+        
+        # Créer un embed pour montrer les résultats
+        embed = discord.Embed(
+            title=f"🔍 Recherche d'anime : {nom}",
+            description=f"J'ai trouvé {len(matching_animes)} résultats",
+            color=discord.Color.blue()
+        )
+        
+        # Afficher la première image trouvée comme thumbnail
+        if matching_animes[0].get("image_url"):
+            embed.set_thumbnail(url=matching_animes[0]["image_url"])
+        
+        view = AnimeView(matching_animes)
+        await interaction.followup.send(embed=embed, view=view)
+        
+    except Exception as e:
+        await interaction.followup.send(
+            "Une erreur s'est produite lors de la recherche. Veuillez réessayer.",
+            ephemeral=True
+        )
+        print(f"Erreur: {e}")
+
 
 # Démarrage du bot et le serveur web
 subprocess.run(['python', '-m', 'playwright', 'install']) #pour la cloud version
