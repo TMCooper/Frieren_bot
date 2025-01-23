@@ -345,6 +345,15 @@ async def anime_search(interaction: discord.Interaction, nom: str):
         )
         print(f"Erreur: {e}")
 
+@bot.tree.command(
+    name="purge_anime_file",
+    description="Purge le fichier anime.json",
+)
+async def purge_anime_file(interaction: discord.Interaction):
+    await interaction.response.defer()
+    user_id = interaction.user.id
+
+    await Holo.purge_anime_file(interaction.user.id, interaction)
 
 # Démarrage du bot et le serveur web
 subprocess.run(['python', '-m', 'playwright', 'install']) #pour la cloud version
