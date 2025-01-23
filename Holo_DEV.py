@@ -20,7 +20,7 @@ from function.AnimeView import *
 load_dotenv()
 TOKEN = os.getenv('TOKEN_DEV')
 DEV_GUILD_ID = int(os.getenv('DEV_GUILD_ID'))
-DEV_ID = int(os.getenv('DEV_GUILD_ID'))
+DEV_ID = int(os.getenv('DEV_ID'))
 
 # Configuration du bot
 intents = discord.Intents.all()
@@ -296,42 +296,47 @@ async def reboot(interaction: discord.Interaction):
     description="Rafraîchit les données des animes",
 )
 async def anime_refresh(interaction: discord.Interaction):
-    await interaction.response.defer()
-    if(interaction.user.id == DEV_ID):
-        await Maid.voiranime_scrap_catalogue()
-    else:
-        await interaction.followup.send("Seul le développeur peut utiliser cette commande.")
+    msg = await Maid.voiranime_scrap_catalogue(interaction.user.id, interaction)
+    if msg == None:
+        await interaction.response.send_message("Seul le développeur peut utiliser cette commande.")
 
 @bot.tree.command(
     name="anime_search",
     description="Rechercher un anime par son nom"
 )
-@app_commands.describe(query="Nom de l'anime à rechercher")
-async def anime_search(interaction: discord.Interaction, query: str):
+@app_commands.describe(nom="Nom de l'anime à rechercher")
+async def anime_search(interaction: discord.Interaction, nom: str):
     await interaction.response.defer()
 
     try:
         with open("anime.json", "r", encoding="utf-8") as file:
             anime_data = json.load(file)
         
-        # Filtrer les résultats pour limiter à 25 choix maximum
         matching_animes = [
             anime for anime in anime_data 
-            if query.lower() in anime["anime_name"].lower()
-        ][:25]  # Limite à 25 choix
+            if nom.lower() in anime["anime_name"].lower()
+        ]
         
         if not matching_animes:
             await interaction.followup.send(
-                f"Aucun anime trouvé pour '{query}'. Essayez avec un autre nom.",
+                f"❌ Aucun anime trouvé pour '{nom}'. Essayez avec un autre nom.",
                 ephemeral=True
             )
             return
         
-        view = AnimeView(matching_animes)
-        await interaction.followup.send(
-            content=f"📺 J'ai trouvé {len(matching_animes)} résultats pour '{query}'.\nSélectionnez un anime dans la liste déroulante :",
-            view=view
+        # Créer un embed pour montrer les résultats
+        embed = discord.Embed(
+            title=f"🔍 Recherche d'anime : {nom}",
+            description=f"J'ai trouvé {len(matching_animes)} résultats",
+            color=discord.Color.blue()
         )
+        
+        # Afficher la première image trouvée comme thumbnail
+        if matching_animes[0].get("image_url"):
+            embed.set_thumbnail(url=matching_animes[0]["image_url"])
+        
+        view = AnimeView(matching_animes)
+        await interaction.followup.send(embed=embed, view=view)
         
     except Exception as e:
         await interaction.followup.send(

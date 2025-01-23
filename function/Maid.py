@@ -1,8 +1,12 @@
 from function.Yui import Yui
 from playwright.async_api import async_playwright
+from dotenv import load_dotenv
+from bs4 import BeautifulSoup
 import json
 import logging
 import os
+
+load_dotenv()
 
 # class linked to all that is scraping
 
@@ -148,8 +152,14 @@ class Maid:
 
         return "Jeu non trouvé."
     
-    async def voiranime_scrap_catalogue():
-        i = 1 
+    async def voiranime_scrap_catalogue(id, interaction):
+        if id != int(os.getenv('DEV_ID')):
+            return await interaction.response.send_message("Cette commande ne peut être exécutée que par un bot développé pour Voiranime.")
+        
+        i = 1
+        if i == 1:
+            await interaction.response.send_message("Actualisation en cours...") 
+        
         while True:
             # Boucle infinie pour récupérer les données du catalogue de VoiAnime
             URL = f"https://v6.voiranime.com/liste-danimes/page/{i}"
@@ -165,19 +175,23 @@ class Maid:
 
             # Extraire la liste des animes
             titres = soup.find_all('h3', class_='h5')
+            images = soup.find_all('img', class_='img-responsive')
 
             titre_animes = []
             links = []
 
             # Vérifier si le fichier existe déjà
             anime_file = "anime.json"
-            if os.path.exists(anime_file):
+            if os.path.exists(anime_file) and os.path.getsize(anime_file) > 0:
                 with open(anime_file, "r", encoding="utf-8") as f:
-                    anime_data = json.load(f)
+                    try:
+                        anime_data = json.load(f)
+                    except json.JSONDecodeError:
+                        anime_data = []
             else:
                 anime_data = []
 
-            for titre in titres:
+            for index, titre in enumerate(titres):
                 # Extraire le titre de l'anime
                 titre_anime = titre.get_text(strip=True)
                 titre_animes.append(titre_anime)
@@ -190,10 +204,17 @@ class Maid:
                 else:
                     link = "N/A"
 
+                # Extraire l'image correspondante
+                if index < len(images):
+                    image_url = images[index].get("src", "N/A")
+                else:
+                    image_url = "N/A"
+
                 # Ajouter les données dans le fichier JSON
                 anime_entry = {
                     "anime_name": titre_anime,
-                    "lien": link
+                    "lien": link,
+                    "image_url": image_url
                 }
                 anime_data.append(anime_entry)
 
