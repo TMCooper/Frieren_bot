@@ -48,3 +48,14 @@ class Holo:
         prononce = trad.pronunciation
         
         return formated_traduction, prononce
+    
+    async def purge_anime_file(id, interaction):
+        if int(id) == int(DEV_ID):
+            await interaction.followup.send("Purge du fichier anime.json...")
+            if os.path.exists('anime.json'):
+                os.remove('anime.json')
+            # Crée un fichier vide
+            with open('anime.json', 'w') as f:
+                pass
+        else:
+            await interaction.followup.send("Vous n'êtes pas autorisé à purger le fichier...")
