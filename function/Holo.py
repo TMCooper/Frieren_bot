@@ -71,7 +71,7 @@ class Holo:
             await interaction.followup.send("Mise a jour du bot...")
             # Mettre à jour le bot
             await bot.close()
-            subprocess.run("git pull", shell=True)
+            subprocess.run("git pull origin cloud", shell=True)
             time.sleep(1.5)
 
             if platform.system() == "Windows":
