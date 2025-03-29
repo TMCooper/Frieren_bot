@@ -6,6 +6,7 @@ import json
 import subprocess
 # import datetime
 import time
+import threading
 from dotenv import load_dotenv
 from function.Maid import Maid
 from function.Eru import Eru
@@ -352,11 +353,11 @@ async def anime_search(interaction: discord.Interaction, nom: str):
 async def purge_anime_file(interaction: discord.Interaction):
     await interaction.response.defer()
     await Holo.purge_anime_file(interaction.user.id, interaction)
-
+    
 @bot.tree.command(
-    name="update_bot",
-    description="Update le bot"
-)
+        name="update_bot",
+        description="Update le bot"
+    )
 async def update_bot(interaction: discord.Integration):
     await interaction.response.defer()
     msg = await Holo.update(bot, interaction.user.id, interaction)
