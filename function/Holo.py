@@ -5,6 +5,7 @@ from googletrans import Translator # type: ignore
 import signal
 import subprocess
 import time
+import platform
 from function.Yui import *
 
 translator = Translator()
@@ -37,7 +38,10 @@ class Holo:
             print("Bot has been shut down. Restarting...")
                     
             # Relancer le script
-            os.execv(sys.executable, ['python'] + sys.argv)
+            if platform.system() == "Windows":
+                os.execv(sys.executable, ['python'] + sys.argv)
+            elif platform.system() == "Linux":
+                os.execv(sys.executable, ['nohup'] + ['python'] + sys.argv + "&")
         else:
             # Si l'utilisateur n'est pas autorisé
             await interaction.followup.send("Vous n'êtes pas autorisé à redémarrer ce bot.")
@@ -69,6 +73,10 @@ class Holo:
             await bot.close()
             subprocess.run("git pull", shell=True)
             time.sleep(1.5)
-            os.execv(sys.executable, ['python'] + sys.argv)
+
+            if platform.system() == "Windows":
+                os.execv(sys.executable, ['python'] + sys.argv)
+            elif platform.system() == "Linux":
+                os.execv(sys.executable, ['nohup'] + ['python'] + sys.argv + "&")
         else:
             await interaction.followup.send("Vous n'êtes pas autorisé à mettre à jour le bot.")
