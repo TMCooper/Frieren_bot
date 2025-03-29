@@ -45,7 +45,7 @@ class Holo:
             elif platform.system() == "Linux":
                 print("Restarting...")
                 print(PATH)
-                subprocess.run('source ./venv/bin/activate && python Frieren.py &', shell=True)
+                subprocess.run('cd .. && source ./venv/bin/activate && python Frieren.py &', shell=True)
                 print("Post subprocess")
                 # os.execv(sys.executable, ['nohup python'] + sys.argv + [" &"])
         else:
@@ -84,6 +84,6 @@ class Holo:
                 os.execv(sys.executable, ['python'] + sys.argv)
             elif platform.system() == "Linux":
                 os.kill(os.getpid(), signal.SIGINT)
-                subprocess.run('source ./venv/bin/activate && nohub python Frieren.py &', shell=True)
+                subprocess.run('cd .. && source ./venv/bin/activate && nohub python Frieren.py &', shell=True)
         else:
             await interaction.followup.send("Vous n'êtes pas autorisé à mettre à jour le bot.")
