@@ -75,7 +75,7 @@ async def hello(interaction: discord.Interaction, member: discord.Member):
     description="Un petit hello world ma foi aussi simple que ça :)",
 )
 async def hello_world(interaction: discord.Interaction):
-    await interaction.response.send_message("Hello World Edit")
+    await interaction.response.send_message("Hello World")
 
 # Commande : /code
 #commands without selenium
