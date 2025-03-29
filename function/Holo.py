@@ -36,13 +36,14 @@ class Holo:
             await interaction.followup.send("Le bot redémare...")
             await bot.close()  # Fermer le bot proprement
             print("Bot has been shut down. Restarting...")
+            os.kill(os.getpid(), signal.SIGINT)
                     
             # Relancer le script
             if platform.system() == "Windows":
                 os.execv(sys.executable, ['python'] + sys.argv)
             elif platform.system() == "Linux":
                 print("Restarting...")
-                time.sleep(1)
+                time.sleep(0.5)
                 subprocess.run('source ./venv/bin/activate && nohub python Frieren.py &', shell=True)
                 print("Post subprocess")
                 # os.execv(sys.executable, ['nohup python'] + sys.argv + [" &"])
