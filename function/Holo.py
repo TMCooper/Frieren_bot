@@ -41,8 +41,8 @@ class Holo:
             if platform.system() == "Windows":
                 os.execv(sys.executable, ['python'] + sys.argv)
             elif platform.system() == "Linux":
-                subprocess.run('source ./venv/bin/activate', shell=True)
-                os.execv(sys.executable, ['nohup python'] + sys.argv + [" &"])
+                subprocess.run('source ./venv/bin/activate && pip install -r requirements.txt && nohub python Frieren.py &', shell=True)
+                # os.execv(sys.executable, ['nohup python'] + sys.argv + [" &"])
         else:
             # Si l'utilisateur n'est pas autorisé
             await interaction.followup.send("Vous n'êtes pas autorisé à redémarrer ce bot.")
