@@ -41,7 +41,7 @@ class Holo:
             if platform.system() == "Windows":
                 os.execv(sys.executable, ['python'] + sys.argv)
             elif platform.system() == "Linux":
-                os.execv(sys.executable, ['nohup'] + ['python'] + sys.argv + ["&"])
+                os.execv(sys.executable, ['nohup python'] + sys.argv + [" &"])
         else:
             # Si l'utilisateur n'est pas autorisé
             await interaction.followup.send("Vous n'êtes pas autorisé à redémarrer ce bot.")
@@ -77,6 +77,6 @@ class Holo:
             if platform.system() == "Windows":
                 os.execv(sys.executable, ['python'] + sys.argv)
             elif platform.system() == "Linux":
-                os.execv(sys.executable, ['nohup'] + ['python'] + sys.argv + ["&"])
+                os.execv(sys.executable, ['nohup python'] + sys.argv + [" &"])
         else:
             await interaction.followup.send("Vous n'êtes pas autorisé à mettre à jour le bot.")

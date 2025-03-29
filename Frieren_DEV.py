@@ -6,7 +6,7 @@ import json
 import subprocess
 # import datetime
 import time
-import threading
+import platform
 from dotenv import load_dotenv
 from function.Maid import Maid
 from function.Eru import Eru
@@ -30,7 +30,10 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
-    subprocess.run('cls', shell=True)
+    if platform.system() == "Windows":
+        subprocess.run('cls', shell=True)
+    elif platform.system() == "Linux":
+         subprocess.run('clear', shell=True)
     print(f"{bot.user} est Réveillé !\n")
     print(f"ID du serveur configuré : {DEV_GUILD_ID}")
 

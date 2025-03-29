@@ -6,6 +6,7 @@ import json
 import subprocess
 # import datetime
 import time
+import platform
 from dotenv import load_dotenv
 from function.Maid import Maid
 from function.Eru import Eru
@@ -29,7 +30,10 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
-    subprocess.run('cls', shell=True)
+    if platform.system() == "Windows":
+        subprocess.run('cls', shell=True)
+    elif platform.system() == "Linux":
+         subprocess.run('clear', shell=True)
     print(f"{bot.user} est Réveillé !\n")
     print(f"ID du serveur configuré : {DEV_GUILD_ID}")
 
@@ -275,7 +279,7 @@ async def update_bot(interaction: discord.Integration):
         await interaction.followup.send(msg)
 
 # Démarrage du bot et le serveur web
-subprocess.run("source ./venv/bin/activate", shell=True)
+subprocess.run('source ./venv/bin/activate', shell=True)
 subprocess.run(['python', '-m', 'playwright', 'install']) #pour la cloud version
 delay = 3000 / 1000  # Convertir millisecondes en secondes
 time.sleep(delay)  # Pause de 3 secondes
