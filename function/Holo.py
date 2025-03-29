@@ -3,6 +3,8 @@ import sys
 from dotenv import load_dotenv
 from googletrans import Translator # type: ignore
 import signal
+import subprocess
+import time
 from function.Yui import *
 
 translator = Translator()
@@ -59,3 +61,14 @@ class Holo:
                 pass
         else:
             await interaction.followup.send("Vous n'êtes pas autorisé à purger le fichier...")
+
+    async def update(bot, ID, interaction):
+        if int(ID) == int(DEV_ID):
+            await interaction.followup.send("Mise a jour du bot...")
+            # Mettre à jour le bot
+            await bot.close()
+            subprocess.run("git pull", shell=True)
+            time.sleep(1.5)
+            os.execv(sys.executable, ['python'] + sys.argv)
+        else:
+            await interaction.followup.send("Vous n'êtes pas autorisé à mettre à jour le bot.")
