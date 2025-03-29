@@ -353,6 +353,16 @@ async def purge_anime_file(interaction: discord.Interaction):
     await interaction.response.defer()
     await Holo.purge_anime_file(interaction.user.id, interaction)
 
+@bot.tree.command(
+    name="update_bot",
+    description="Update le bot"
+)
+async def update_bot(interaction: discord.Integration):
+    await interaction.response.defer()
+    msg = await Holo.update(bot, interaction.user.id, interaction)
+    if msg:
+        await interaction.followup.send(msg)
+
 # Démarrage du bot et le serveur web
 subprocess.run(['python', '-m', 'playwright', 'install']) #pour la cloud version
 delay = 3000 / 1000  # Convertir millisecondes en secondes
