@@ -11,6 +11,7 @@ from function.Yui import *
 translator = Translator()
 load_dotenv()
 
+PATH = os.path.dirname(os.path.abspath(__file__))
 DEV_ID = os.getenv('DEV_ID')
 
 class Holo:
@@ -43,6 +44,7 @@ class Holo:
                 os.execv(sys.executable, ['python'] + sys.argv)
             elif platform.system() == "Linux":
                 print("Restarting...")
+                print(PATH)
                 subprocess.run('source ./venv/bin/activate && python Frieren.py &', shell=True)
                 print("Post subprocess")
                 # os.execv(sys.executable, ['nohup python'] + sys.argv + [" &"])
