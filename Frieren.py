@@ -67,7 +67,7 @@ async def hello(interaction: discord.Interaction, member: discord.Member):
     if member is None:
         await interaction.response.send_message("Veuillez mentionner un membre valide.", ephemeral=True)
         return
-    await interaction.response.send_message(f"Hello {member.mention} muah :kiss:")
+    await interaction.response.send_message(f"Hello {member.mention} :kiss:")
 
 # Commande : /hello_world
 @bot.tree.command(
