@@ -38,7 +38,7 @@ async def on_ready():
     print(f"ID du serveur configuré : {DEV_GUILD_ID}")
 
     try:
-        synced = await bot.tree.sync()
+        synced = await bot.tree.sync(DEV_GUILD_ID)
         print(f"Synced {len(synced)} command(s) synchroniser")
     except Exception as e:
         print(f"Erreur lors de la synchronisation des commandes : {e}")
