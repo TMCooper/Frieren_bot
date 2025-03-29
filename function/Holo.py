@@ -43,10 +43,11 @@ class Holo:
             if platform.system() == "Windows":
                 os.execv(sys.executable, ['python'] + sys.argv)
             elif platform.system() == "Linux":
-                print("Restarting...")
-                print(PATH)
-                subprocess.run('cd .. && source ./venv/bin/activate && python Frieren.py &', shell=True)
-                print("Post subprocess")
+                # print("Restarting...")
+                # print(PATH)
+                # subprocess.run('cd .. && source ./venv/bin/activate && python Frieren.py &', shell=True)
+                # print("Post subprocess")
+                os.execv(sys.executable, ['python'] + sys.argv)
                 # os.execv(sys.executable, ['nohup python'] + sys.argv + [" &"])
         else:
             # Si l'utilisateur n'est pas autorisé
