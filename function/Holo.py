@@ -43,6 +43,7 @@ class Holo:
             elif platform.system() == "Linux":
                 print("Restarting...")
                 subprocess.run('source ./venv/bin/activate && nohub python Frieren.py &', shell=True)
+                print("Post subprocess")
                 # os.execv(sys.executable, ['nohup python'] + sys.argv + [" &"])
         else:
             # Si l'utilisateur n'est pas autorisé
