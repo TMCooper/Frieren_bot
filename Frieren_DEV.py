@@ -7,6 +7,7 @@ import subprocess
 # import datetime
 import time
 import platform
+import psutil # type: ignore
 from dotenv import load_dotenv
 from function.Maid import Maid
 from function.Eru import Eru
@@ -147,6 +148,7 @@ async def waifu(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed)
 
 #commands without selenium
+#rule34
 @bot.tree.command(
     name="rule34",
     description="Donne une image rule34 avec les tags choisit",
@@ -246,6 +248,7 @@ async def rule34(interaction: discord.Interaction, tags: str):
 #     else:  # Si un message est retourné (par exemple, utilisateur non autorisé)
 #         await interaction.followup.send(games_file_exists)
 
+#translate
 @bot.tree.command(
     name="translate",
     description="Traduit une phrase dans la langue de votre choix",
@@ -284,7 +287,8 @@ async def shudown(interaction: discord.Interaction):
     msg = await Holo.shutdown(bot, interaction.user.id, interaction)
     if msg:
         await interaction.followup.send(msg)
-    
+
+#reboot
 @bot.tree.command(
     name="reboot",
     description="redémarre le bot",
@@ -295,6 +299,7 @@ async def reboot(interaction: discord.Interaction):
     if msg:
         await interaction.followup.send(msg)
 
+#anime_refresh
 @bot.tree.command(
     name="anime_refresh",
     description="Rafraîchit les données des animes",
@@ -304,6 +309,7 @@ async def anime_refresh(interaction: discord.Interaction):
     if msg == None:
         await interaction.response.send_message("Seul le développeur peut utiliser cette commande.")
 
+#anime_search
 @bot.tree.command(
     name="anime_search",
     description="Rechercher un anime par son nom"
@@ -349,6 +355,7 @@ async def anime_search(interaction: discord.Interaction, nom: str):
         )
         print(f"Erreur: {e}")
 
+#purge_anime_file
 @bot.tree.command(
     name="purge_anime_file",
     description="Purge le fichier anime.json",
@@ -356,7 +363,8 @@ async def anime_search(interaction: discord.Interaction, nom: str):
 async def purge_anime_file(interaction: discord.Interaction):
     await interaction.response.defer()
     await Holo.purge_anime_file(interaction.user.id, interaction)
-    
+
+# update_bot
 @bot.tree.command(
         name="update_bot",
         description="Update le bot"
@@ -366,6 +374,55 @@ async def update_bot(interaction: discord.Integration):
     msg = await Holo.update(bot, interaction.user.id, interaction)
     if msg:
         await interaction.followup.send(msg)
+
+@bot.tree.command(
+    name="status",
+    description="Donne quelque information de base du bot",
+)
+async def status(interaction: discord.Interaction):
+    await interaction.response.defer()
+    embed = discord.Embed(
+        title="Status du bot",
+        description=f"Utilisant Python {platform.python_version()}",
+        color=discord.Color.blue()
+    )
+    embed.add_field(name="Utilisation mémoire", value=f"{psutil.virtual_memory().percent:.2f}%")
+    embed.add_field(name="Utilisation CPU", value=f"{psutil.cpu_percent()}%")
+    embed.add_field(name="Utilisation de la bande passante", value=f"{psutil.net_io_counters().bytes_sent / 1024 / 1024:.2f} MB/s")
+    embed.set_footer(text=f"Bot par TMCooper")
+    await interaction.followup.send(embed=embed)
+
+# info
+@bot.tree.command(
+    name="info",
+    description="Donne quelque lien du bot",
+)
+async def info(interaction: discord.Interaction):
+    await interaction.response.defer()
+    embed = discord.Embed(
+        title="Informations utiles",
+        description="Liens utiles pour accéder au dashboard du bot",
+        color=discord.Color.blue()
+    )
+    embed.add_field(name="Documentation", value="https://github.com/TMCooper/Frieren_bot")
+    # embed.add_field(name="Aide Discord", value="https://discord.gg/j99Xw9d")
+    await interaction.followup.send(embed=embed)
+
+#Dashboard
+
+@bot.tree.command(
+    name="dashboard",
+    description="Donne quelque lien pour accéder au dashboard du bot",
+)
+async def dashboard(interaction: discord.Interaction):
+    await interaction.response.defer()
+    embed = discord.Embed(
+        title="Dashboard du bot",
+        description="Liens utiles pour le dashboard du bot",
+        color=discord.Color.blue()
+    )
+    embed.add_field(name="Dashboard localhost du bot", value="http://127.0.0.1:8080/")
+    await interaction.followup.send(embed=embed)
 
 # Démarrage du bot et le serveur web
 subprocess.run(['python', '-m', 'playwright', 'install']) #pour la cloud version
