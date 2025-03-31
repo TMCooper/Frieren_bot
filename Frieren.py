@@ -4,6 +4,7 @@ from discord.ext import commands
 import os
 import json
 import subprocess
+import psutil
 # import datetime
 import time
 import platform
@@ -259,7 +260,7 @@ async def anime_search(interaction: discord.Interaction, nom: str):
             ephemeral=True
         )
         print(f"Erreur: {e}")
-
+# purge_anime_file
 @bot.tree.command(
     name="purge_anime_file",
     description="Purge le fichier anime.json",
@@ -268,6 +269,7 @@ async def purge_anime_file(interaction: discord.Interaction):
     await interaction.response.defer()
     await Holo.purge_anime_file(interaction.user.id, interaction)
 
+#update_bot
 @bot.tree.command(
     name="update_bot",
     description="Update le bot"
@@ -277,6 +279,40 @@ async def update_bot(interaction: discord.Integration):
     msg = await Holo.update(bot, interaction.user.id, interaction)
     if msg:
         await interaction.followup.send(msg)
+
+#status
+@bot.tree.command(
+    name="status",
+    description="Donne quelque information de base du bot",
+)
+async def status(interaction: discord.Interaction):
+    await interaction.response.defer()
+    embed = discord.Embed(
+        title="Status du bot",
+        description=f"Utilisant Python {platform.python_version()}",
+        color=discord.Color.blue()
+    )
+    embed.add_field(name="Utilisation mémoire", value=f"{psutil.virtual_memory().percent:.2f}%")
+    embed.add_field(name="Utilisation CPU", value=f"{psutil.cpu_percent()}%")
+    embed.add_field(name="Utilisation de la bande passante", value=f"{psutil.net_io_counters().bytes_sent / 1024 / 1024:.2f} MB/s")
+    embed.set_footer(text=f"Bot par TMCooper")
+    await interaction.followup.send(embed=embed)
+
+# info
+@bot.tree.command(
+    name="info",
+    description="Donne quelque lien utile pour acceder au dashboard du bot",
+)
+async def info(interaction: discord.Interaction):
+    await interaction.response.defer()
+    embed = discord.Embed(
+        title="Informations utiles",
+        description="Liens utiles pour accéder au dashboard du bot",
+        color=discord.Color.blue()
+    )
+    embed.add_field(name="Documentation", value="https://github.com/TMCooper/Frieren_bot")
+    # embed.add_field(name="Aide Discord", value="https://discord.gg/j99Xw9d")
+    await interaction.followup.send(embed=embed)
 
 # Démarrage du bot et le serveur web
 subprocess.run('source ./venv/bin/activate', shell=True)
