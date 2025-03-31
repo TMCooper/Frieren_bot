@@ -72,6 +72,7 @@ class Holo:
             # Mettre à jour le bot
             await bot.close()
             os.kill(os.getpid(), signal.SIGINT)
+            subprocess.run("pip install -r requirements.txt", shell=True)
             subprocess.run("git pull origin cloud", shell=True)
             time.sleep(1.5)
         
