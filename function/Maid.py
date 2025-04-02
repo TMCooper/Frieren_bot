@@ -205,7 +205,7 @@ class Maid:
 
                 # Extraire l'image correspondante
                 if index < len(images):
-                    image_url = images[index].get("src", "N/A")
+                    image_url = images[index].get("src", "N/A") if index < len(images) else "N/A"
                 else:
                     image_url = "N/A"
 
