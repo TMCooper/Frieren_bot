@@ -205,7 +205,16 @@ class Maid:
 
                 # Extraire l'image correspondante
                 if index < len(images):
-                    image_url = images[index].get("src", "N/A") if index < len(images) else "N/A"
+                    # Vérifier si l'image a un attribut srcset
+                    srcset = images[index].get("srcset", "")
+                    if srcset:
+                        # Extraire toutes les URLs du srcset
+                        srcset_urls = [url.strip().split(" ")[0] for url in srcset.split(",")]
+                        # Prendre la dernière URL qui est généralement la plus grande résolution
+                        image_url = srcset_urls[-1] if srcset_urls else images[index].get("src", "N/A")
+                    else:
+                        # Si pas de srcset, utiliser le src par défaut
+                        image_url = images[index].get("src", "N/A")
                 else:
                     image_url = "N/A"
 
