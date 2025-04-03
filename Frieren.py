@@ -5,7 +5,7 @@ import os
 import json
 import subprocess
 import psutil
-# import datetime
+import datetime
 import time
 import platform
 from dotenv import load_dotenv
@@ -15,8 +15,8 @@ from function.Yui import Yui
 from function.Rias import Rias
 from function.Holo import Holo
 from function.AnimeView import *
-# from function.Frieren import Frieren
-# from function.Mita import Mita
+from function.Frieren import Frieren
+from function.Mita import Mita
 
 # Chargement des variables d'environnement
 load_dotenv()
