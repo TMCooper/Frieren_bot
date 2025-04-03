@@ -386,39 +386,44 @@ async def anime_search(interaction: discord.Interaction, nom: str):
     try:
         with open("anime.json", "r", encoding="utf-8") as file:
             anime_data = json.load(file)
-        
-        matching_animes = [
-            anime for anime in anime_data 
-            if nom.lower() in anime["anime_name"].lower()
-        ]
-        
+
+        seen_anime = set()  # Pour éviter les doublons
+        matching_animes = []
+
+        for anime in anime_data:
+            anime_name = anime["anime_name"].strip().lower()
+            if nom.lower() in anime_name and anime_name not in seen_anime:
+                matching_animes.append(anime)
+                seen_anime.add(anime_name)  # Ajout au set pour éviter un doublon
+
         if not matching_animes:
             await interaction.followup.send(
                 f"❌ Aucun anime trouvé pour '{nom}'. Essayez avec un autre nom.",
                 ephemeral=True
             )
             return
-        
+
         # Créer un embed pour montrer les résultats
         embed = discord.Embed(
             title=f"🔍 Recherche d'anime : {nom}",
             description=f"J'ai trouvé {len(matching_animes)} résultats",
             color=discord.Color.blue()
         )
-        
+
         # Afficher la première image trouvée comme thumbnail
         if matching_animes[0].get("image_url"):
             embed.set_thumbnail(url=matching_animes[0]["image_url"])
-        
+
         view = AnimeView(matching_animes)
         await interaction.followup.send(embed=embed, view=view)
-        
+
     except Exception as e:
         await interaction.followup.send(
             "Une erreur s'est produite lors de la recherche. Veuillez réessayer.",
             ephemeral=True
         )
         print(f"Erreur: {e}")
+
 
 #purge_anime_file
 @bot.tree.command(
