@@ -70,80 +70,154 @@ class Maid:
                         await page.goto(game_url)
 
                         # Attendre que la page soit complètement chargée
-                        await page.wait_for_timeout(5000)  # Attente de 3 secondes
-
+                        await page.wait_for_load_state("networkidle", timeout=10000)
+                        
+                        # Nouvelle méthode améliorée pour gérer le popup de consentement
                         try:
-                            # Chercher plusieurs variations de texte pour le bouton de consentement
-                            consent_button = await page.query_selector('button:has-text("Accepter")') or await page.query_selector('button:has-text("J\'ACCEPTE")')
-
-                            # Si un bouton est trouvé, essayer de cliquer dessus
-                            if consent_button:
-                                await consent_button.click()
-                                logging.info('Fenêtre de consentement fermée.')
-                            else:
-                                logging.info('Aucune fenêtre de consentement trouvée.')
-
+                            # Vérifier si le popup spécifique de Quantcast est présent
+                            consent_popup = page.locator('div#qc-cmp2-container')
+                            is_visible = await consent_popup.is_visible(timeout=3000)
+                            
+                            if is_visible:
+                                # Essayer plusieurs sélecteurs pour le bouton d'acceptation
+                                selectors = [
+                                    'button.qc-cmp2-button-primary', 
+                                    'button[mode="primary"]',
+                                    'button:has-text("Accepter")',
+                                    'button:has-text("J\'ACCEPTE")',
+                                    'button:has-text("Accept")',
+                                    'button:has-text("ACCEPT")',
+                                    'button:has-text("Agree")'
+                                ]
+                                
+                                for selector in selectors:
+                                    try:
+                                        consent_button = page.locator(selector).first
+                                        if await consent_button.is_visible(timeout=1000):
+                                            # Utiliser JavaScript pour cliquer (plus fiable)
+                                            await page.evaluate(f'document.querySelector("{selector}").click()')
+                                            logging.info(f'Fenêtre de consentement fermée via {selector}')
+                                            
+                                            # Attendre que le popup disparaisse
+                                            await page.wait_for_timeout(2000)
+                                            break
+                                    except Exception as e:
+                                        continue
+                                        
+                                # Si toujours visible, essayer de cliquer sur le conteneur principal
+                                if await consent_popup.is_visible(timeout=1000):
+                                    # Essayer de fermer en utilisant JavaScript pour cibler l'élément exact
+                                    await page.evaluate('''() => {
+                                        const buttons = document.querySelectorAll('#qc-cmp2-container button');
+                                        for (let btn of buttons) {
+                                            if (btn.textContent.includes('Accept') || 
+                                                btn.textContent.includes('Accepter') || 
+                                                btn.textContent.includes('Agree')) {
+                                                btn.click();
+                                                break;
+                                            }
+                                        }
+                                    }''')
+                                    logging.info('Tentative JavaScript pour fermer le popup')
+                                    await page.wait_for_timeout(2000)
                         except Exception as e:
-                            logging.warning(f"Erreur lors de la fermeture de la fenêtre de consentement: {str(e)}")
+                            logging.warning(f"Erreur lors de la gestion de la fenêtre de consentement: {str(e)}")
 
+                        # Continuer avec le reste du code...
                         # Extraire l'image de couverture
-                        game_img_url = await page.get_attribute('img.object-cover', 'src')
-                        if not game_img_url:
+                        try:
+                            game_img_url = await page.get_attribute('img.object-cover', 'src')
+                            if not game_img_url:
+                                game_img_url = "Image non trouvée"
+
+                            # Reconstituer l'URL de l'image si elle est relative
+                            if game_img_url and game_img_url.startswith('/'):
+                                game_img_url = f"https://www.speedrun.com{game_img_url}"
+                        except Exception as e:
+                            logging.warning(f"Erreur lors de l'extraction de l'image: {str(e)}")
                             game_img_url = "Image non trouvée"
 
-                        # Reconstituer l'URL de l'image si elle est relative
-                        if game_img_url.startswith('/'):
-                            game_img_url = f"https://www.speedrun.com{game_img_url}"
-
                         # Chercher le bouton correspondant à "Any%" et cliquer dessus
-                        any_percent_button = await page.query_selector('button:has-text("Any%")')
-                        
-                        if any_percent_button:
-                            await any_percent_button.click()
-                            logging.info('Clic sur le bouton "Any%" effectué.')
+                        try:
+                            # Essayer de trouver le bouton Any% avec différentes approches
+                            any_percent_button = None
+                            selectors = [
+                                'button:has-text("Any%")',
+                                'button:text("Any%")',
+                                'a:has-text("Any%")'
+                            ]
+                            
+                            for selector in selectors:
+                                any_percent_button = await page.query_selector(selector)
+                                if any_percent_button:
+                                    # Essayer d'abord un clic normal
+                                    try:
+                                        await any_percent_button.click(timeout=5000)
+                                        logging.info(f'Clic sur le bouton "Any%" effectué via {selector}')
+                                        break
+                                    except Exception:
+                                        # Si le clic normal échoue, essayer avec force
+                                        try:
+                                            await page.evaluate('(element) => element.click()', any_percent_button)
+                                            logging.info('Clic JavaScript sur le bouton "Any%" effectué')
+                                            break
+                                        except Exception as e:
+                                            logging.warning(f"Échec du clic JavaScript: {str(e)}")
+                                            continue
+                            
+                            if any_percent_button:
+                                # Attendre que la page soit actualisée
+                                await page.wait_for_timeout(5000)
 
-                            # Attendre que la page soit actualisée
-                            await page.wait_for_timeout(5000)
+                                # Prendre une capture d'écran pour le débogage si nécessaire
+                                await page.screenshot(path=f"speedrun_debug_{jeu.replace(' ', '_')}.png")
 
-                            # Extraire les résultats des top 3 joueurs
-                            results = []
-                            rows = await page.query_selector_all('tr.cursor-pointer')
-                            for row in rows[:3]:  # Limiter aux 3 premiers résultats
-                                rank_img = await row.query_selector('td img[alt]')
-                                rank = await rank_img.get_attribute('alt') if rank_img else "N/A"
-                                
-                                player_link = await row.query_selector('a.x-username')
-                                player_name = await player_link.inner_text() if player_link else "N/A"
-                                
-                                country_img = await player_link.query_selector('img[alt]') if player_link else None
-                                country = await country_img.get_attribute('alt') if country_img else "N/A"
-                                
-                                time_link = await row.query_selector('a[href*="runs"] span span span span')
-                                time = await time_link.inner_text() if time_link else "N/A"
-                                
-                                date_span = await row.query_selector('.x-timestamp')
-                                date = await date_span.inner_text() if date_span else "N/A"
-                                
-                                # Ajouter le résultat au tableau
-                                results.append({
-                                    "Rank": rank,
-                                    "Player": player_name,
-                                    "Country": country,
-                                    "Time": time,
-                                    "Date": date
-                                })
+                                # Extraire les résultats des top 3 joueurs
+                                # [Reste du code inchangé]
+                                results = []
+                                rows = await page.query_selector_all('tr.cursor-pointer')
+                                for row in rows[:3]:  # Limiter aux 3 premiers résultats
+                                    rank_img = await row.query_selector('td img[alt]')
+                                    rank = await rank_img.get_attribute('alt') if rank_img else "N/A"
+                                    
+                                    player_link = await row.query_selector('a.x-username')
+                                    player_name = await player_link.inner_text() if player_link else "N/A"
+                                    
+                                    country_img = await player_link.query_selector('img[alt]') if player_link else None
+                                    country = await country_img.get_attribute('alt') if country_img else "N/A"
+                                    
+                                    time_link = await row.query_selector('a[href*="runs"] span span span span')
+                                    time = await time_link.inner_text() if time_link else "N/A"
+                                    
+                                    date_span = await row.query_selector('.x-timestamp')
+                                    date = await date_span.inner_text() if date_span else "N/A"
+                                    
+                                    # Ajouter le résultat au tableau
+                                    results.append({
+                                        "Rank": rank,
+                                        "Player": player_name,
+                                        "Country": country,
+                                        "Time": time,
+                                        "Date": date
+                                    })
 
-                            # Fermer le navigateur après l'extraction des données
+                                # Fermer le navigateur après l'extraction des données
+                                await browser.close()
+
+                                # Retourner les résultats
+                                return {
+                                    "Image URL": game_img_url,
+                                    "Top Results": results if results else "Top speedrun non trouvé pour cette catégorie."
+                                }
+                            else:
+                                await browser.close()
+                                return "Catégorie 'Any%' non trouvée."
+                        except Exception as e:
+                            # Prendre une capture d'écran pour le débogage
+                            await page.screenshot(path=f"speedrun_error_{jeu.replace(' ', '_')}.png")
+                            logging.error(f"Erreur lors de la recherche du bouton Any%: {str(e)}")
                             await browser.close()
-
-                            # Retourner les résultats
-                            return {
-                                "Image URL": game_img_url,
-                                "Top Results": results if results else "Top speedrun non trouvé pour cette catégorie."
-                            }
-                        else:
-                            await browser.close()
-                            return "Catégorie 'Any%' non trouvée."
+                            return f"Erreur lors de la recherche de la catégorie Any%: {str(e)}"
 
                 except Exception as e:
                     logging.error(f"Erreur lors du scraping de la page : {str(e)}")

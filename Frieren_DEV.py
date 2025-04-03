@@ -166,11 +166,16 @@ async def rule34(interaction: discord.Interaction, tags: str):
 @app_commands.describe(jeu="Nom du jeu dont vous voulez voir les records")
 async def speedrun(interaction: discord.Interaction, jeu: str):
     await interaction.response.defer()
-    top_speedrun_data = await Frieren.speedrun_main(jeu)
-    if top_speedrun_data == "None":
-        await interaction.followup.send("Fichier introuvable. demander au créateur d'utiliser la ``/refresh_speedrun`` pour le créer.")
-
-    elif top_speedrun_data != "None":
+    
+    try:
+        top_speedrun_data = await Frieren.speedrun_main(jeu)
+        
+        if top_speedrun_data == "None":
+            return await interaction.followup.send("Fichier introuvable. Demandez au créateur d'utiliser la commande `/refresh_speedrun` pour créer la base de données des jeux.")
+        
+        if isinstance(top_speedrun_data, str):
+            return await interaction.followup.send(top_speedrun_data)
+        
         # Création de l'embed avec un style amélioré
         embed = discord.Embed(
             title=f"🏃‍♂️ Classement Mondial Speedrun Any% 🏆",
@@ -179,42 +184,68 @@ async def speedrun(interaction: discord.Interaction, jeu: str):
         )
 
         # Ajout de l'image du jeu avec une taille optimisée
-        if 'Image URL' in top_speedrun_data:
-            embed.set_thumbnail(url=top_speedrun_data['Image URL'])
+        if 'Image URL' in top_speedrun_data and top_speedrun_data['Image URL'] != "Image non trouvée":
+            try:
+                embed.set_thumbnail(url=top_speedrun_data['Image URL'])
+            except Exception as e:
+                print(f"Erreur lors de l'ajout de l'image: {str(e)}")
+                # Continue même si l'image ne peut pas être ajoutée
 
         # Ajout d'informations supplémentaires dans l'en-tête
         embed.add_field(
             name="ℹ️ Informations",
-            value="Classement basé sur les meilleurs temps en Any%\nMis à jour régulièrement via speedrun.com",
+            value="Classement basé sur les meilleurs temps en Any%\nMis à jour via speedrun.com",
             inline=False
         )
 
         # Création du classement avec des emojis pour les médailles
-        if 'Top Results' in top_speedrun_data:
-            # On garde le tri par rang plutôt que par nom de joueur pour un vrai classement
+        if 'Top Results' in top_speedrun_data and isinstance(top_speedrun_data['Top Results'], list):
+            # Mapping des médailles
             medals = {
+                "1": "🥇",
+                "2": "🥈",
+                "3": "🥉",
                 "1er": "🥇",
-                "2ème": "🥈",
+                "2ème": "🥈", 
                 "3ème": "🥉"
             }
             
-            for rank in top_speedrun_data['Top Results']:
-                medal = medals.get(rank['Rank'], "🎮")
+            for i, rank in enumerate(top_speedrun_data['Top Results'], 1):
+                # Fallback si le rang n'est pas bien détecté
+                rank_display = rank.get('Rank', str(i))
+                medal = medals.get(rank_display, medals.get(str(i), "🎮"))
                 
                 # Formatage amélioré des informations de chaque run
-                time_formatted = f"⏱️ {rank['Time']}"
-                date_formatted = f"📅 {rank['Date']}"
+                player_name = rank.get('Player', 'Inconnu')
+                country = f"({rank.get('Country', '??')})" if rank.get('Country') != "N/A" else ""
+                time_formatted = f"⏱️ {rank.get('Time', 'Temps inconnu')}"
+                date_formatted = f"📅 {rank.get('Date', 'Date inconnue')}"
+                
+                value_text = (
+                    f"👤 **{player_name}** {country}\n"
+                    f"{time_formatted}\n"
+                    f"{date_formatted}\n"
+                    "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄"  # Séparateur décoratif
+                )
                 
                 embed.add_field(
-                    name=f"{medal} {rank['Rank']} Place",
-                    value=(
-                        f"👤 **{rank['Player']}** ({rank['Country']})\n"
-                        f"{time_formatted}\n"
-                        f"{date_formatted}\n"
-                        "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄"  # Séparateur décoratif
-                    ),
+                    name=f"{medal} {rank_display if rank_display != 'N/A' else f'{i}ème'} Place",
+                    value=value_text,
                     inline=False
                 )
+        elif 'Top Results' in top_speedrun_data and isinstance(top_speedrun_data['Top Results'], str):
+            # Cas où top_speedrun_data['Top Results'] est un message d'erreur
+            embed.add_field(
+                name="Résultats",
+                value=top_speedrun_data['Top Results'],
+                inline=False
+            )
+        else:
+            embed.add_field(
+                name="Résultats",
+                value="Aucun résultat trouvé pour ce jeu en catégorie Any%.",
+                inline=False
+            )
 
         # Pied de page amélioré
         embed.set_footer(
@@ -223,10 +254,44 @@ async def speedrun(interaction: discord.Interaction, jeu: str):
         )
 
         # Timestamp pour montrer quand les données ont été récupérées
-        embed.timestamp = datetime.datetime.utcnow()
+        embed.timestamp = datetime.datetime.now()
 
         await interaction.followup.send(embed=embed)
+        
+    except Exception as e:
+        error_message = f"Une erreur s'est produite lors de la récupération des données: {str(e)}"
+        print(error_message)
+        await interaction.followup.send(error_message)
 
+@bot.tree.command(
+    name="refresh_speedrun",
+    description="Actualise la base de données des jeux pour les speedruns (Admin seulement)"
+)
+async def refresh_speedrun(interaction: discord.Interaction):
+    await interaction.response.defer()
+    if interaction.user.id == DEV_ID:
+        try:
+            # Vérification des permissions
+            result = await Frieren.speedrun_refresh(interaction.user.id)
+            
+            # Création d'un embed pour la réponse
+            embed = discord.Embed(
+                title="📊 Actualisation de la base de données Speedrun",
+                description=result,
+                color=discord.Color.blue() if "terminée" in result else discord.Color.red()
+            )
+            
+            embed.set_footer(text="Base de données mise à jour le")
+            embed.timestamp = datetime.datetime.now()
+            
+            await interaction.followup.send(embed=embed)
+            
+        except Exception as e:
+            error_message = f"Une erreur s'est produite: {str(e)}"
+            await interaction.followup.send(error_message)
+    
+    else :
+        await interaction.followup.send("Vous n'êtes pas autorisé à utiliser cette commande.")
 
 # commande a retapper car étrangement long même si le test.py
 @bot.tree.command(
