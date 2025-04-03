@@ -460,7 +460,8 @@ async def status(interaction: discord.Interaction):
 # info
 @bot.tree.command(
     name="info",
-    description="Donne quelque lien du bot",
+    description="Donne quelque lien utile pour le bot",
+
 )
 async def info(interaction: discord.Interaction):
     await interaction.response.defer()

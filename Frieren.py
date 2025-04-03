@@ -103,6 +103,7 @@ async def code(interaction: discord.Interaction, jeux_entrer: app_commands.Choic
     # envoie le code d'échange
     await interaction.followup.send(f"Code d'échange : \n{code_scrap}")
 
+# Commande : /code
 @bot.tree.command(
     name="my_id",
     description="Donne l'id de l'utilisateur",
@@ -158,6 +159,7 @@ async def rule34(interaction: discord.Interaction, tags: str):
     image_url = await Rias.rule34(tags)
     await interaction.followup.send(image_url)
 
+# Commande : /translate
 @bot.tree.command(
     name="translate",
     description="Traduit une phrase dans la langue de votre choix",
@@ -186,6 +188,7 @@ async def translate(interaction: discord.Interaction, phrase: str, langues: app_
     formated_traduction, prononce = await Holo.Translate(phrase, langues.value)
     await interaction.followup.send(f'Phrase : ``{phrase}`` Vers : ``{langues.name}`` \n Traduction : ``{formated_traduction}`` \n Prononciation : ``{prononce}``')
 
+# shutdown
 @bot.tree.command(
     name="shutdown",
     description="down le bot",
@@ -196,7 +199,8 @@ async def shudown(interaction: discord.Interaction):
     msg = await Holo.shutdown(bot, interaction.user.id, interaction)
     if msg:
         await interaction.followup.send(msg)
-    
+
+# reboot
 @bot.tree.command(
     name="reboot",
     description="redémarre le bot",
@@ -207,6 +211,7 @@ async def reboot(interaction: discord.Interaction):
     if msg:
         await interaction.followup.send(msg)
 
+# Commande : /anime_refresh
 @bot.tree.command(
     name="anime_refresh",
     description="Rafraîchit les données des animes",
@@ -216,6 +221,7 @@ async def anime_refresh(interaction: discord.Interaction):
     if msg == None:
         await interaction.response.send_message("Seul le développeur peut utiliser cette commande.")
 
+# Commande : /animate_search
 @bot.tree.command(
     name="anime_search",
     description="Rechercher un anime par son nom"
@@ -301,7 +307,7 @@ async def status(interaction: discord.Interaction):
 # info
 @bot.tree.command(
     name="info",
-    description="Donne quelque lien utile pour acceder au dashboard du bot",
+    description="Donne quelque lien utile pour le bot",
 )
 async def info(interaction: discord.Interaction):
     await interaction.response.defer()
@@ -312,6 +318,180 @@ async def info(interaction: discord.Interaction):
     )
     embed.add_field(name="Documentation", value="https://github.com/TMCooper/Frieren_bot")
     # embed.add_field(name="Aide Discord", value="https://discord.gg/j99Xw9d")
+    await interaction.followup.send(embed=embed)
+
+# refresh_speedrun (Admin seulement)
+@bot.tree.command(
+    name="refresh_speedrun",
+    description="Actualise la base de données des jeux pour les speedruns (Admin seulement)"
+)
+async def refresh_speedrun(interaction: discord.Interaction):
+    await interaction.response.defer()
+    if interaction.user.id == DEV_ID:
+        try:
+            # Vérification des permissions
+            result = await Frieren.speedrun_refresh(interaction.user.id)
+            
+            # Création d'un embed pour la réponse
+            embed = discord.Embed(
+                title="📊 Actualisation de la base de données Speedrun",
+                description=result,
+                color=discord.Color.blue() if "terminée" in result else discord.Color.red()
+            )
+            
+            embed.set_footer(text="Base de données mise à jour le")
+            embed.timestamp = datetime.datetime.now()
+            
+            await interaction.followup.send(embed=embed)
+            
+        except Exception as e:
+            error_message = f"Une erreur s'est produite: {str(e)}"
+            await interaction.followup.send(error_message)
+    
+    else :
+        await interaction.followup.send("Vous n'êtes pas autorisé à utiliser cette commande.")
+
+# speedrun
+@bot.tree.command(
+    name="speedrun",
+    description="Affiche le classement mondial des speedruns Any% pour le jeu de votre choix"
+)
+@app_commands.describe(jeu="Nom du jeu dont vous voulez voir les records")
+async def speedrun(interaction: discord.Interaction, jeu: str):
+    await interaction.response.defer()
+    
+    try:
+        top_speedrun_data = await Frieren.speedrun_main(jeu)
+        
+        if top_speedrun_data == "None":
+            return await interaction.followup.send("Fichier introuvable. Demandez au créateur d'utiliser la commande `/refresh_speedrun` pour créer la base de données des jeux.")
+        
+        if isinstance(top_speedrun_data, str):
+            return await interaction.followup.send(top_speedrun_data)
+        
+        # Création de l'embed avec un style amélioré
+        embed = discord.Embed(
+            title=f"🏃‍♂️ Classement Mondial Speedrun Any% 🏆",
+            description=f"**{jeu}**",
+            color=discord.Color.gold()  # Couleur or pour un aspect plus premium
+        )
+
+        # Ajout de l'image du jeu avec une taille optimisée
+        if 'Image URL' in top_speedrun_data and top_speedrun_data['Image URL'] != "Image non trouvée":
+            try:
+                embed.set_thumbnail(url=top_speedrun_data['Image URL'])
+            except Exception as e:
+                print(f"Erreur lors de l'ajout de l'image: {str(e)}")
+                # Continue même si l'image ne peut pas être ajoutée
+
+        # Ajout d'informations supplémentaires dans l'en-tête
+        embed.add_field(
+            name="ℹ️ Informations",
+            value="Classement basé sur les meilleurs temps en Any%\nMis à jour via speedrun.com",
+            inline=False
+        )
+
+        # Création du classement avec des emojis pour les médailles
+        if 'Top Results' in top_speedrun_data and isinstance(top_speedrun_data['Top Results'], list):
+            # Mapping des médailles
+            medals = {
+                "1": "🥇",
+                "2": "🥈",
+                "3": "🥉",
+                "1er": "🥇",
+                "2ème": "🥈", 
+                "3ème": "🥉"
+            }
+            
+            for i, rank in enumerate(top_speedrun_data['Top Results'], 1):
+                # Fallback si le rang n'est pas bien détecté
+                rank_display = rank.get('Rank', str(i))
+                medal = medals.get(rank_display, medals.get(str(i), "🎮"))
+                
+                # Formatage amélioré des informations de chaque run
+                player_name = rank.get('Player', 'Inconnu')
+                country = f"({rank.get('Country', '??')})" if rank.get('Country') != "N/A" else ""
+                time_formatted = f"⏱️ {rank.get('Time', 'Temps inconnu')}"
+                date_formatted = f"📅 {rank.get('Date', 'Date inconnue')}"
+                
+                value_text = (
+                    f"👤 **{player_name}** {country}\n"
+                    f"{time_formatted}\n"
+                    f"{date_formatted}\n"
+                    "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄"  # Séparateur décoratif
+                )
+                
+                embed.add_field(
+                    name=f"{medal} {rank_display if rank_display != 'N/A' else f'{i}ème'} Place",
+                    value=value_text,
+                    inline=False
+                )
+        elif 'Top Results' in top_speedrun_data and isinstance(top_speedrun_data['Top Results'], str):
+            # Cas où top_speedrun_data['Top Results'] est un message d'erreur
+            embed.add_field(
+                name="Résultats",
+                value=top_speedrun_data['Top Results'],
+                inline=False
+            )
+        else:
+            embed.add_field(
+                name="Résultats",
+                value="Aucun résultat trouvé pour ce jeu en catégorie Any%.",
+                inline=False
+            )
+
+        # Pied de page amélioré
+        embed.set_footer(
+            text="Données fournies par speedrun.com | Utilisez /speedrun <jeu> pour voir d'autres classements",
+            icon_url="https://www.speedrun.com/favicon.ico"  # Icône de speedrun.com
+        )
+
+        # Timestamp pour montrer quand les données ont été récupérées
+        embed.timestamp = datetime.datetime.now()
+
+        await interaction.followup.send(embed=embed)
+        
+    except Exception as e:
+        error_message = f"Une erreur s'est produite lors de la récupération des données: {str(e)}"
+        print(error_message)
+        await interaction.followup.send(error_message)
+
+# game_file
+@bot.tree.command(
+    name="games_file",
+    description="Vérifie si le fichier des jeux est accessible.",
+)
+async def games_file(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+    if interaction.user.id == DEV_ID:
+        user_id = interaction.user.id
+
+        # Vérifie si le fichier existe
+        games_file_exists = await Mita.debug_game(user_id)
+        
+        # Vérifie la valeur retournée par debug_game
+        if games_file_exists is True:
+            await interaction.followup.send("Le fichier des jeux est accessible.")
+        elif games_file_exists is False:
+            await interaction.followup.send("Le fichier des jeux est introuvable ou illisible.")
+        else:  # Si un message est retourné (par exemple, utilisateur non autorisé)
+            await interaction.followup.send(games_file_exists)
+    else :
+        await interaction.followup.send("Vous n'êtes pas autorisé à utiliser cette commande.")
+
+# dashboard
+@bot.tree.command(
+    name="dashboard",
+    description="Donne quelque lien pour accéder au dashboard du bot",
+)
+async def dashboard(interaction: discord.Interaction):
+    await interaction.response.defer()
+    embed = discord.Embed(
+        title="Dashboard du bot",
+        description="Liens utiles pour le dashboard du bot",
+        color=discord.Color.blue()
+    )
+    embed.add_field(name="Dashboard localhost du bot", value="http://127.0.0.1:8080/")
     await interaction.followup.send(embed=embed)
 
 # Démarrage du bot et le serveur web
