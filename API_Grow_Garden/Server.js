@@ -16,7 +16,7 @@ if (fs.existsSync(configPath)) {
 }
 
 const app = express();
-const PORT = config.Port || 3000;
+const PORT = config.Port || 5521;
 
 app.use(cors());
 
