@@ -586,7 +586,7 @@ async def imediat_aga(interaction: discord.Interaction):
     except Exception as e:
         await interaction.followup.send(f"❌ Erreur lors du test: {e}")
 
-# Commande optionnelle pour arrêter la tâche
+# Commande pour arrêter la tâche
 @bot.tree.command(
     name="stop_aga",
     description="Arrête l'envoi automatique du market AGA"
@@ -603,7 +603,7 @@ async def stop_aga(interaction: discord.Interaction):
     else:
         await interaction.followup.send("ℹ️ Aucune tâche AGA active à arrêter.")
 
-# Optionnel: Commande pour vérifier le statut
+# Commande pour vérifier le statut
 @bot.tree.command(
     name="status_aga",
     description="Vérifie le statut de la tâche automatique AGA"
