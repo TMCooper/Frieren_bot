@@ -8,3 +8,6 @@ chrome-win64
 Frieren-Dev
 anime.json
 games.json
+node_modules
+pakage.json
+pakage-lock.json
