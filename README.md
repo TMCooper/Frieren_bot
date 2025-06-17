@@ -3,3 +3,5 @@
 # python_discord_bot
 
 Here is it the cloud versions of the bot
+
+Thanks for the grow garden api the git here: https://github.com/Just3itx/Grow-A-Garden-API
