@@ -6,7 +6,7 @@ import signal
 import subprocess
 import time
 from pathlib import Path
-import platform
+# import platform
 from function.Yui import *
 
 translator = Translator()
@@ -21,11 +21,11 @@ class Holo:
         if int(ID) == int(DEV_ID):
             await interaction.followup.send("Le bot se ferme...") # Envoyer un message au bot sur Discord
 
+            Holo.manage_api("stop") #Arrete l'api
             await bot.close()  # Fermer le bot proprement
             print("Bot has been shut down. Sending Ctrl+C signal...")
 
             os.kill(os.getpid(), signal.SIGINT)
-            Holo.manage_api("stop")
 
             return True
         else:
@@ -38,13 +38,14 @@ class Holo:
 
             # Envoyer un message confirmant le redémarrage
             await interaction.followup.send("Le bot redémare...")
+            
+            Holo.manage_api("restart")
             await bot.close()  # Fermer le bot proprement
             print("Bot has been shut down. Restarting...")
             os.kill(os.getpid(), signal.SIGINT)
 
             # Relancer le script
             os.execv(sys.executable, ['python'] + sys.argv)
-            Holo.manage_api("restart")
 
         else:
             # Si l'utilisateur n'est pas autorisé
@@ -92,7 +93,7 @@ class Holo:
         else:
             await interaction.followup.send("Vous n'êtes pas autorisé à mettre à jour le bot.")
 
-    async def manage_api(action):
+    def manage_api(action):
         
         original_dir = Path.cwd()
         target_dir = original_dir / "API_Grow_Garden"
