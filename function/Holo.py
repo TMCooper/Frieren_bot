@@ -5,6 +5,7 @@ from googletrans import Translator # type: ignore
 import signal
 import subprocess
 import time
+from pathlib import Path
 import platform
 from function.Yui import *
 
@@ -23,7 +24,14 @@ class Holo:
             await bot.close()  # Fermer le bot proprement
             print("Bot has been shut down. Sending Ctrl+C signal...")
 
-            os.kill(os.getpid(), signal.SIGINT)  # Envoie un signal Ctrl+C au processus
+            os.kill(os.getpid(), signal.SIGINT)
+            
+            # Chemin de travail
+            original_dir = Path.cwd()
+            target_dir = original_dir / "API_Grow_Garden"  # Envoie un signal Ctrl+C au processus
+            os.chdir(target_dir)
+            subprocess.run(["pm2", "stop", "API-grow-a-garden"], check=True)
+            os.chdir(original_dir)
 
             return True
         else:
@@ -33,14 +41,30 @@ class Holo:
     async def reboot(bot, ID, interaction):
         # print(f"ID : {ID} DEV_ID : {DEV_ID}")
         if int(ID) == int(DEV_ID):
+
+            # Chemin de travail
+            original_dir = Path.cwd()
+            target_dir = original_dir / "API_Grow_Garden"
+
+            # Aller dans le sous-dossier
+            os.chdir(target_dir)
+            # Termine le processus de l'api
+            subprocess.run(["pm2", "stop", "API-grow-a-garden"], check=True)
+            os.chdir(original_dir)
+
             # Envoyer un message confirmant le redémarrage
             await interaction.followup.send("Le bot redémare...")
             await bot.close()  # Fermer le bot proprement
             print("Bot has been shut down. Restarting...")
             os.kill(os.getpid(), signal.SIGINT)
-                    
+
             # Relancer le script
             os.execv(sys.executable, ['python'] + sys.argv)
+            
+            os.chdir(target_dir)
+            subprocess.run(["pm2", "start", "Server.js", "--name", "API-grow-a-garden"], check=True)
+            os.chdir(original_dir)
+
         else:
             # Si l'utilisateur n'est pas autorisé
             await interaction.followup.send("Vous n'êtes pas autorisé à redémarrer ce bot.")

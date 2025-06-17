@@ -9,6 +9,7 @@ import datetime
 import time
 import platform
 import asyncio
+from pathlib import Path
 from dotenv import load_dotenv
 from function.Maid import Maid
 from function.Eru import Eru
@@ -29,6 +30,10 @@ DEV_ID = int(os.getenv('DEV_ID'))
 intents = discord.Intents.all()
 # intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
+
+# Chemin de travail
+original_dir = Path.cwd()
+target_dir = original_dir / "API_Grow_Garden"  # Envoie un signal Ctrl+C au processus
 
 @bot.event
 async def on_ready():
@@ -630,4 +635,7 @@ subprocess.run(['python', '-m', 'playwright', 'install']) #pour la cloud version
 delay = 3000 / 1000  # Convertir millisecondes en secondes
 time.sleep(delay)  # Pause de 3 secondes
 Yui.alive()
+os.chdir(target_dir)
+subprocess.run(["pm2", "start", "Server.js", "--name", "API-grow-a-garden"], check=True)
+os.chdir(original_dir)
 bot.run(TOKEN)
