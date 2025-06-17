@@ -1,9 +1,13 @@
 from function.Yui import Yui
 from playwright.async_api import async_playwright
 from dotenv import load_dotenv
+import time
+import datetime
 import json
 import logging
+import discord
 import os
+from collections import defaultdict
 
 load_dotenv()
 
@@ -307,3 +311,210 @@ class Maid:
             i += 1
 
         return titre_animes, links
+    
+    async def shop_aga(channel=None):
+        """Version automatique de shop_aga qui récupère et traite les données en une seule méthode"""
+        try:
+            # Récupérer les données API avec Yui.request
+            api_response = await Yui.request("https://growagardenapi.vercel.app/api/stock/GetStock")
+            
+            # Extraire le JSON du HTML BeautifulSoup si nécessaire
+            if hasattr(api_response, 'find'):
+                pre_tag = api_response.find('pre')
+                if pre_tag:
+                    json_text = pre_tag.get_text()
+                    try:
+                        api_aga = json.loads(json_text)
+                        print("JSON extrait avec succès du HTML")
+                    except json.JSONDecodeError as e:
+                        print(f"Erreur de parsing JSON: {e}")
+                        return "Erreur: JSON malformé de l'API"
+                else:
+                    print("Pas de balise <pre> trouvée dans le HTML")
+                    return "Erreur: Format HTML inattendu"
+            else:
+                api_aga = api_response
+            
+            print(f"Données API récupérées: {len(api_aga)} sections")
+            
+            # Configuration des catégories
+            categories_config = {
+                'seedsStock': {'name': 'Graines', 'emoji': '🌱', 'default_emoji': '🌱'},
+                'gearStock': {'name': 'Outils', 'emoji': '🛠️', 'default_emoji': '🛠️'},
+                'eggStock': {'name': 'Œufs', 'emoji': '🥚', 'default_emoji': '🥚'},
+                'honeyStock': {'name': 'Articles Miel', 'emoji': '🍯', 'default_emoji': '🍯'},
+                'nightStock': {'name': 'Articles Nocturnes', 'emoji': '🌙', 'default_emoji': '🌙'},
+                'cosmeticsStock': {'name': 'Cosmétiques', 'emoji': '✨', 'default_emoji': '✨'},
+                'easterStock': {'name': 'Articles Pâques', 'emoji': '🐰', 'default_emoji': '🐰'}
+            }
+            
+            def clean_and_group_items(items_list, default_emoji='📦'):
+                """Nettoie et regroupe les items identiques"""
+                if not items_list:
+                    return [], 0
+                
+                item_counts = defaultdict(lambda: {'value': 0, 'emoji': '', 'image': ''})
+                
+                for item in items_list:
+                    # Nettoyage des données
+                    name = str(item.get('name', 'Unknown')).strip()
+                    try:
+                        value = int(item.get('value', 0))
+                    except (ValueError, TypeError):
+                        value = 0
+                    
+                    if value > 0:  # Ne traiter que les items avec une valeur > 0
+                        item_counts[name]['value'] += value
+                        
+                        # Garder le premier emoji/image trouvé
+                        if not item_counts[name]['emoji'] and item.get('emoji'):
+                            item_counts[name]['emoji'] = item['emoji']
+                        if not item_counts[name]['image'] and item.get('image'):
+                            item_counts[name]['image'] = item['image']
+                
+                # Convertir en liste finale
+                final_items = []
+                total_count = 0
+                
+                for name, data in item_counts.items():
+                    emoji = data['emoji'] or default_emoji
+                    final_items.append({
+                        'name': name,
+                        'value': data['value'],
+                        'emoji': emoji,
+                        'image': data['image']
+                    })
+                    total_count += data['value']
+                
+                # Trier par valeur décroissante
+                final_items.sort(key=lambda x: x['value'], reverse=True)
+                
+                return final_items, total_count
+            
+            def format_items_text(items, max_length=1024):
+                """Formate la liste d'items en texte pour Discord"""
+                if not items:
+                    return "Aucun item disponible"
+                
+                text_lines = []
+                for item in items:
+                    line = f"{item['emoji']} **{item['name']}** - x{item['value']}"
+                    text_lines.append(line)
+                
+                full_text = "\n".join(text_lines)
+                
+                # Tronquer si trop long
+                if len(full_text) > max_length:
+                    truncated_lines = []
+                    current_length = 0
+                    for line in text_lines:
+                        if current_length + len(line) + 1 > max_length - 20:
+                            truncated_lines.append("... (tronqué)")
+                            break
+                        truncated_lines.append(line)
+                        current_length += len(line) + 1
+                    full_text = "\n".join(truncated_lines)
+                
+                return full_text
+            
+            # Créer l'embed principal
+            embed = discord.Embed(
+                title="🌱 Grow A Garden - Market",
+                description="Boutique disponible dans le jeu",
+                color=discord.Color.green(),
+                timestamp=datetime.datetime.utcnow()
+            )
+            
+            # Traitement de toutes les catégories
+            grand_total = 0
+            categories_processed = 0
+            
+            for category_key, config in categories_config.items():
+                if category_key in api_aga and api_aga[category_key]:
+                    print(f"Traitement de {category_key}...")
+                    
+                    # Nettoyer et regrouper les items
+                    items, total_count = clean_and_group_items(
+                        api_aga[category_key], 
+                        config['default_emoji']
+                    )
+                    
+                    if items:  # Seulement ajouter si il y a des items
+                        formatted_text = format_items_text(items)
+                        
+                        embed.add_field(
+                            name=f"{config['emoji']} {config['name']} (Total: {total_count})",
+                            value=formatted_text,
+                            inline=True
+                        )
+                        
+                        grand_total += total_count
+                        categories_processed += 1
+                        print(f"✅ {config['name']}: {len(items)} types d'items, {total_count} total")
+                    else:
+                        print(f"⚠️ {config['name']}: Aucun item valide trouvé")
+                else:
+                    print(f"⚠️ {category_key}: Catégorie vide ou inexistante")
+            
+            # Ajouter un résumé si on a des données
+            if grand_total > 0:
+                embed.add_field(
+                    name="📊 Résumé",
+                    value=f"**Total général:** {grand_total} items\n**Catégories actives:** {categories_processed}",
+                    inline=False
+                )
+            else:
+                embed.add_field(
+                    name="⚠️ Information",
+                    value="Aucun item disponible dans la boutique actuellement",
+                    inline=False
+                )
+            
+            embed.set_footer(text="Mise à jour automatique toutes les 5 minutes")
+            
+            print(f"Embed créé avec {len(embed.fields)} fields - Total: {grand_total} items")
+            
+            # Envoyer l'embed ou le retourner
+            if channel:
+                await channel.send(embed=embed)
+                return f"Embed envoyé dans {channel.mention} - {grand_total} items affichés"
+            else:
+                return embed
+                
+        except Exception as e:
+            error_msg = f"Erreur lors de la récupération des données : {str(e)}"
+            print(f"Exception dans shop_aga: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            if channel:
+                error_embed = discord.Embed(
+                    title="❌ Erreur",
+                    description=error_msg,
+                    color=discord.Color.red()
+                )
+                await channel.send(embed=error_embed)
+            return error_msg
+        
+    def get_next_5min_interval():
+        """Calcule le temps d'attente jusqu'au prochain multiple de 5 minutes + 30 secondes de buffer"""
+        now = datetime.datetime.now()
+        
+        # Calculer la prochaine heure qui est un multiple de 5 minutes
+        minutes = now.minute
+        next_minute = ((minutes // 5) + 1) * 5
+        
+        if next_minute >= 60:
+            # Si on dépasse 60 minutes, passer à l'heure suivante
+            next_time = now.replace(hour=now.hour + 1, minute=0, second=0, microsecond=0)
+            if next_time.hour >= 24:
+                next_time = next_time.replace(hour=0) + datetime.timedelta(days=1)
+        else:
+            next_time = now.replace(minute=next_minute, second=0, microsecond=0)
+        
+        # Ajouter 30 secondes de buffer pour être sûr que l'API soit mise à jour
+        next_time += datetime.timedelta(seconds=30)
+        
+        # Calculer le temps d'attente en secondes
+        wait_seconds = (next_time - now).total_seconds()
+        return wait_seconds, next_time
