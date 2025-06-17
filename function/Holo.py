@@ -91,13 +91,20 @@ class Holo:
 
     async def update(bot, ID, interaction):
         if int(ID) == int(DEV_ID):
+        
+            original_dir = Path.cwd()
+            target_dir = original_dir / "API_Grow_Garden"
+
             await interaction.followup.send("Mise a jour du bot...")
 
             # Mettre à jour le bot
             await bot.close()
             os.kill(os.getpid(), signal.SIGINT)
-            subprocess.run("pip install -r requirements.txt", shell=True)
             subprocess.run("git pull origin cloud", shell=True)
+            subprocess.run("pip install -r requirements.txt", shell=True)
+            os.chdir(target_dir)
+            subprocess.run("sh ./auto_install.sh", shell=True)
+            os.chdir(original_dir)
             time.sleep(1.5)
         
             os.execv(sys.executable, ['python'] + sys.argv)
