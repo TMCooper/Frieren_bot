@@ -102,6 +102,7 @@ class Holo:
             os.chdir(target_dir)
             
             if action == "start":
+                print(target_dir)
                 subprocess.run(["pm2", "start", "Server.js", "--name", "API-grow-a-garden"], check=True)
                 print("✅ API démarrée avec succès !")
                 
