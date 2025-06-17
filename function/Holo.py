@@ -79,6 +79,7 @@ class Holo:
 
             await interaction.followup.send("Mise a jour du bot...")
 
+            Holo.manage_api("stop")
             # Mettre à jour le bot
             await bot.close()
             os.kill(os.getpid(), signal.SIGINT)
@@ -88,6 +89,7 @@ class Holo:
             subprocess.run("sh ./auto_install.sh", shell=True)
             os.chdir(original_dir)
             time.sleep(1.5)
+            Holo.manage_api("start")
         
             os.execv(sys.executable, ['python'] + sys.argv)
         else:
