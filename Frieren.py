@@ -536,42 +536,42 @@ async def setup_aga(interaction: discord.Interaction):
         print(f"Erreur lors du setup AGA: {e}")
         await interaction.followup.send(f"❌ Erreur lors du setup: {e}")
 
-async def aga_recurring_task():
-    """Tâche récurrente qui s'exécute à des heures fixes (multiples de 5 minutes + 30s buffer)"""
-    global aga_channel
-    
-    try:
-        while True:
-            # Attendre jusqu'au prochain multiple de 5 minutes + buffer
-            wait_seconds, next_time = Maid.get_next_5min_interval()
-            print(f"Prochaine exécution prévue à {next_time.strftime('%H:%M:%S')} (attente de {wait_seconds:.0f} secondes)")
-            await asyncio.sleep(wait_seconds)
-            
-            if aga_channel:
-                try:
-                    embed_result = await Maid.shop_aga()
-                    
-                    # Vérifier que le résultat est bien un embed et non un message d'erreur
-                    if isinstance(embed_result, discord.Embed):
-                        # Déboguer l'embed avant envoi
-                        print(f"Embed title: {embed_result.title}")
-                        print(f"Embed description: {embed_result.description}")
-                        print(f"Nombre de fields: {len(embed_result.fields)}")
+    async def aga_recurring_task():
+        """Tâche récurrente qui s'exécute à des heures fixes (multiples de 5 minutes + 30s buffer)"""
+        global aga_channel
+        
+        try:
+            while True:
+                # Attendre jusqu'au prochain multiple de 5 minutes + buffer
+                wait_seconds, next_time = Maid.get_next_5min_interval()
+                print(f"Prochaine exécution prévue à {next_time.strftime('%H:%M:%S')} (attente de {wait_seconds:.0f} secondes)")
+                await asyncio.sleep(wait_seconds)
+                
+                if aga_channel:
+                    try:
+                        embed_result = await Maid.shop_aga()
                         
-                        # Envoyer l'embed
-                        await aga_channel.send(embed=embed_result)
-                        current_time = datetime.datetime.now().strftime("%H:%M:%S")
-                        print(f"Envoi AGA automatique effectué à {current_time}")
-                    
-                except Exception as e:
-                    print(f"Erreur lors de l'envoi automatique AGA: {e}")
-                    # Optionnel: envoyer un message d'erreur dans le canal
-                    # await aga_channel.send(f"❌ Erreur lors de la mise à jour automatique: {e}")
+                        # Vérifier que le résultat est bien un embed et non un message d'erreur
+                        if isinstance(embed_result, discord.Embed):
+                            # Déboguer l'embed avant envoi
+                            print(f"Embed title: {embed_result.title}")
+                            print(f"Embed description: {embed_result.description}")
+                            print(f"Nombre de fields: {len(embed_result.fields)}")
+                            
+                            # Envoyer l'embed
+                            await aga_channel.send(embed=embed_result)
+                            current_time = datetime.datetime.now().strftime("%H:%M:%S")
+                            print(f"Envoi AGA automatique effectué à {current_time}")
+                        
+                    except Exception as e:
+                        print(f"Erreur lors de l'envoi automatique AGA: {e}")
+                        # Optionnel: envoyer un message d'erreur dans le canal
+                        # await aga_channel.send(f"❌ Erreur lors de la mise à jour automatique: {e}")
             
-    except asyncio.CancelledError:
-        print("Tâche récurrente AGA annulée")
-    except Exception as e:
-        print(f"Erreur dans la tâche récurrente AGA: {e}")
+        except asyncio.CancelledError:
+            print("Tâche récurrente AGA annulée")
+        except Exception as e:
+            print(f"Erreur dans la tâche récurrente AGA: {e}")
 
 @bot.tree.command(
     name="imediat_aga",
