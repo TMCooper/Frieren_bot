@@ -12,3 +12,4 @@ package-lock.json
 package.json
 node_modules
 test_aga.py
+nohub.out
