@@ -21,7 +21,6 @@ class Holo:
         if int(ID) == int(DEV_ID):
             await interaction.followup.send("Le bot se ferme...") # Envoyer un message au bot sur Discord
 
-            Holo.manage_api("stop") #Arrete l'api
             await bot.close()  # Fermer le bot proprement
             print("Bot has been shut down. Sending Ctrl+C signal...")
 
@@ -39,7 +38,6 @@ class Holo:
             # Envoyer un message confirmant le redémarrage
             await interaction.followup.send("Le bot redémare...")
             
-            Holo.manage_api("restart")
             await bot.close()  # Fermer le bot proprement
             print("Bot has been shut down. Restarting...")
             os.kill(os.getpid(), signal.SIGINT)
@@ -73,53 +71,15 @@ class Holo:
 
     async def update(bot, ID, interaction):
         if int(ID) == int(DEV_ID):
-        
-            original_dir = Path.cwd()
-            target_dir = original_dir / "API_Grow_Garden"
-
             await interaction.followup.send("Mise a jour du bot...")
 
-            Holo.manage_api("stop")
             # Mettre à jour le bot
             await bot.close()
             os.kill(os.getpid(), signal.SIGINT)
             subprocess.run("git pull origin cloud", shell=True)
             subprocess.run("pip install -r requirements.txt", shell=True)
-            os.chdir(target_dir)
-            subprocess.run("sh ./auto_install.sh", shell=True)
-            os.chdir(original_dir)
             time.sleep(1.5)
-            Holo.manage_api("start")
         
             os.execv(sys.executable, ['python'] + sys.argv)
         else:
             await interaction.followup.send("Vous n'êtes pas autorisé à mettre à jour le bot.")
-
-    def manage_api(action):
-        
-        original_dir = Path.cwd()
-        target_dir = original_dir / "API_Grow_Garden"
-        
-        try:
-            os.chdir(target_dir)
-            
-            if action == "start":
-                print(target_dir)
-                subprocess.run(["pm2", "start", "Server.js", "--name", "API-grow-a-garden"], check=True)
-                print("✅ API démarrée avec succès !")
-                
-            elif action == "stop":
-                subprocess.run(["pm2", "stop", "API-grow-a-garden"], check=True)
-                print("⏹️ API arrêtée avec succès !")
-                
-            elif action == "restart":
-                subprocess.run(["pm2", "restart", "API-grow-a-garden"], check=True)
-                print("🔄 API redémarrée avec succès !")
-                
-        except subprocess.CalledProcessError as e:
-            print(f"❌ Erreur lors de l'opération : {e}")
-            return False
-        finally:
-            os.chdir(original_dir)
-        
-        return True

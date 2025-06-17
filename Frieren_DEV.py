@@ -629,5 +629,4 @@ subprocess.run(['python', '-m', 'playwright', 'install']) #pour la cloud version
 delay = 3000 / 1000  # Convertir millisecondes en secondes
 time.sleep(delay)  # Pause de 3 secondes
 Yui.alive()
-Holo.manage_api("start")
 bot.run(TOKEN)
