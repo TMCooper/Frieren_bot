@@ -20,6 +20,10 @@ from function.AnimeView import *
 from function.Frieren import Frieren
 from function.Mita import Mita
 
+# Variable globale pour stocker la tâche et le canal
+aga_task = None
+aga_channel = None
+
 # Chargement des variables d'environnement
 load_dotenv()
 TOKEN = os.getenv('TOKEN')
