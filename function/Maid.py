@@ -460,7 +460,7 @@ class Maid:
             next_time = now.replace(minute=next_minute, second=0, microsecond=0)
         
         # Ajouter 30 secondes de buffer pour être sûr que l'API soit mise à jour
-        next_time += datetime.timedelta(seconds=150)
+        next_time += datetime.timedelta(seconds=80)
         
         # Calculer le temps d'attente en secondes
         wait_seconds = (next_time - now).total_seconds()
