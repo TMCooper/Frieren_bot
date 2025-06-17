@@ -8,6 +8,7 @@ import psutil
 import datetime
 import time
 import platform
+import asyncio
 from dotenv import load_dotenv
 from function.Maid import Maid
 from function.Eru import Eru
@@ -498,6 +499,130 @@ async def dashboard(interaction: discord.Interaction):
     )
     embed.add_field(name="Dashboard localhost du bot", value="http://127.0.0.1:8080/")
     await interaction.followup.send(embed=embed)
+
+@bot.tree.command(
+    name="setup_aga",
+    description="Initialise le market de grow a garden avec envoi automatique toutes les 5 minutes"
+)
+async def setup_aga(interaction: discord.Interaction):
+    global aga_task, aga_channel
+    
+    await interaction.response.defer()
+    
+    # Stocker le canal pour les envois futurs
+    aga_channel = interaction.channel
+    
+    try:
+        # Arrêter la tâche précédente si elle existe
+        if aga_task and not aga_task.cancelled():
+            aga_task.cancel()
+            print("Ancienne tâche AGA arrêtée")
+        
+        # Démarrer la nouvelle tâche récurrente SANS faire le premier appel
+        aga_task = asyncio.create_task(aga_recurring_task())
+        
+        # Calculer la prochaine exécution
+        wait_seconds, next_time = Maid.get_next_5min_interval()
+        next_time_str = next_time.strftime("%H:%M:%S")
+        
+        await interaction.followup.send(f"✅ Setup AGA terminé ! Envoi automatique toutes les 5 minutes activé.\n🕐 Prochaine exécution : {next_time_str}")
+        
+    except Exception as e:
+        print(f"Erreur lors du setup AGA: {e}")
+        await interaction.followup.send(f"❌ Erreur lors du setup: {e}")
+
+async def aga_recurring_task():
+    """Tâche récurrente qui s'exécute à des heures fixes (multiples de 5 minutes + 30s buffer)"""
+    global aga_channel
+    
+    try:
+        while True:
+            # Attendre jusqu'au prochain multiple de 5 minutes + buffer
+            wait_seconds, next_time = Maid.get_next_5min_interval()
+            print(f"Prochaine exécution prévue à {next_time.strftime('%H:%M:%S')} (attente de {wait_seconds:.0f} secondes)")
+            await asyncio.sleep(wait_seconds)
+            
+            if aga_channel:
+                try:
+                    embed_result = await Maid.shop_aga()
+                    
+                    # Vérifier que le résultat est bien un embed et non un message d'erreur
+                    if isinstance(embed_result, discord.Embed):
+                        # Déboguer l'embed avant envoi
+                        print(f"Embed title: {embed_result.title}")
+                        print(f"Embed description: {embed_result.description}")
+                        print(f"Nombre de fields: {len(embed_result.fields)}")
+                        
+                        # Envoyer l'embed
+                        await aga_channel.send(embed=embed_result)
+                        current_time = datetime.datetime.now().strftime("%H:%M:%S")
+                        print(f"Envoi AGA automatique effectué à {current_time}")
+                    
+                except Exception as e:
+                    print(f"Erreur lors de l'envoi automatique AGA: {e}")
+                    # Optionnel: envoyer un message d'erreur dans le canal
+                    # await aga_channel.send(f"❌ Erreur lors de la mise à jour automatique: {e}")
+            
+    except asyncio.CancelledError:
+        print("Tâche récurrente AGA annulée")
+    except Exception as e:
+        print(f"Erreur dans la tâche récurrente AGA: {e}")
+
+@bot.tree.command(
+    name="imediat_aga",
+    description="Test immédiat du market AGA"
+)
+async def imediat_aga(interaction: discord.Interaction):
+    await interaction.response.defer()
+    
+    try:
+        embed_result = await Maid.shop_aga()
+        
+        if isinstance(embed_result, discord.Embed):
+            await interaction.followup.send(embed=embed_result)
+        else:
+            await interaction.followup.send(f"Erreur: {embed_result}")
+            
+    except Exception as e:
+        await interaction.followup.send(f"❌ Erreur lors du test: {e}")
+
+# Commande optionnelle pour arrêter la tâche
+@bot.tree.command(
+    name="stop_aga",
+    description="Arrête l'envoi automatique du market AGA"
+)
+async def stop_aga(interaction: discord.Interaction):
+    global aga_task
+    
+    await interaction.response.defer()
+    
+    if aga_task and not aga_task.cancelled():
+        aga_task.cancel()
+        aga_task = None
+        await interaction.followup.send("⏹️ Envoi automatique AGA arrêté.")
+    else:
+        await interaction.followup.send("ℹ️ Aucune tâche AGA active à arrêter.")
+
+# Optionnel: Commande pour vérifier le statut
+@bot.tree.command(
+    name="status_aga",
+    description="Vérifie le statut de la tâche automatique AGA"
+)
+async def status_aga(interaction: discord.Interaction):
+    global aga_task, aga_channel
+    
+    if aga_task and not aga_task.cancelled():
+        channel_name = aga_channel.name if aga_channel else "Canal inconnu"
+        
+        # Calculer la prochaine exécution
+        _, next_time = Maid.get_next_5min_interval()
+        next_time_str = next_time.strftime("%H:%M")
+        
+        await interaction.response.send_message(
+            f"✅ Tâche AGA active dans #{channel_name}\n🕐 Prochaine exécution : {next_time_str}"
+        )
+    else:
+        await interaction.response.send_message("❌ Aucune tâche AGA active")
 
 # Démarrage du bot et le serveur web
 subprocess.run('source ./venv/bin/activate', shell=True)

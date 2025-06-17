@@ -41,3 +41,5 @@ class Frieren:
                 return f"Erreur lors de l'actualisation: {str(e)}"
         else:
             return "Vous n'êtes pas autorisé à effectuer cette action."
+        
+    
