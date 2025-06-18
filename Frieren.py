@@ -21,8 +21,8 @@ from function.Frieren import Frieren
 from function.Mita import Mita
 
 # Variable globale pour stocker la tâche et le canal
-aga_task = None
-aga_channel = None
+aga_tasks = {}  # {guild_id: task}
+aga_channels = {}  # {guild_id: channel}
 
 # Chargement des variables d'environnement
 load_dotenv()
@@ -604,7 +604,7 @@ async def aga_recurring_task(guild_id):
         except Exception as e:
             print(f"[Guild {guild_id}] Erreur dans la tâche AGA: {e}")
             await asyncio.sleep(60)  # Attendre 1 minute avant de réessayer
-            
+
 @bot.tree.command(
     name="imediat_aga",
     description="Test immédiat du market AGA"
