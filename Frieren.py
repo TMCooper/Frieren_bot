@@ -49,6 +49,9 @@ async def on_ready():
     print(f"ID du serveur configuré : {DEV_GUILD_ID}")
 
     try:
+        global aga_tasks, aga_channels
+        aga_tasks.clear()
+        aga_channels.clear()
         synced = await bot.tree.sync()
         print(f"Synced {len(synced)} command(s) synchroniser")
     except Exception as e:
@@ -68,6 +71,22 @@ async def on_message(message):
         print(f"Erreur lors de la réception du message : {e}")
 
     await bot.process_commands(message)
+
+# Nettoyage automatique quand le bot quitte un serveur
+@bot.event
+async def on_guild_remove(guild):
+    """Nettoie les tâches quand le bot quitte un serveur"""
+    guild_id = guild.id
+    
+    if guild_id in aga_tasks:
+        if not aga_tasks[guild_id].cancelled():
+            aga_tasks[guild_id].cancel()
+        del aga_tasks[guild_id]
+        print(f"[Guild {guild_id}] Tâche AGA nettoyée (bot retiré du serveur)")
+    
+    if guild_id in aga_channels:
+        del aga_channels[guild_id]
+        print(f"[Guild {guild_id}] Canal AGA nettoyé (bot retiré du serveur)")
 
 # Commande : /hello
 @bot.tree.command(
@@ -514,69 +533,78 @@ async def dashboard(interaction: discord.Interaction):
     description="Initialise le market de grow a garden avec envoi automatique toutes les 5 minutes"
 )
 async def setup_aga(interaction: discord.Interaction):
-    global aga_task, aga_channel
+    guild_id = interaction.guild_id
     
     await interaction.response.defer()
     
-    # Stocker le canal pour les envois futurs
-    aga_channel = interaction.channel
+    # Stocker le canal pour ce serveur spécifique
+    aga_channels[guild_id] = interaction.channel
     
     try:
-        # Arrêter la tâche précédente si elle existe
-        if aga_task and not aga_task.cancelled():
-            aga_task.cancel()
-            print("Ancienne tâche AGA arrêtée")
+        # Arrêter la tâche précédente pour ce serveur si elle existe
+        if guild_id in aga_tasks and not aga_tasks[guild_id].cancelled():
+            aga_tasks[guild_id].cancel()
+            print(f"[Guild {guild_id}] Ancienne tâche AGA arrêtée")
         
-        # Démarrer la nouvelle tâche récurrente SANS faire le premier appel
-        aga_task = asyncio.create_task(aga_recurring_task())
+        # Démarrer la nouvelle tâche récurrente pour ce serveur
+        aga_tasks[guild_id] = asyncio.create_task(aga_recurring_task(guild_id))
         
         # Calculer la prochaine exécution
         wait_seconds, next_time = Maid.get_next_5min_interval()
         next_time_str = next_time.strftime("%H:%M:%S")
         
-        await interaction.followup.send(f"✅ Setup AGA terminé ! Envoi automatique toutes les 5 minutes activé.\n🕐 Prochaine exécution : {next_time_str}")
+        await interaction.followup.send(
+            f"✅ Setup AGA terminé pour ce serveur ! Envoi automatique toutes les 5 minutes activé.\n"
+            f"🕐 Prochaine exécution : {next_time_str}\n"
+            f"📊 Serveurs actifs : {len(aga_tasks)}"
+        )
         
     except Exception as e:
-        print(f"Erreur lors du setup AGA: {e}")
+        print(f"[Guild {guild_id}] Erreur lors du setup AGA: {e}")
         await interaction.followup.send(f"❌ Erreur lors du setup: {e}")
 
-async def aga_recurring_task():
-    """Tâche récurrente qui s'exécute à des heures fixes (multiples de 5 minutes + 30s buffer)"""
-    global aga_channel
-    
-    try:
-        while True:
-            # Attendre jusqu'au prochain multiple de 5 minutes + buffer
+async def aga_recurring_task(guild_id):
+    """Tâche récurrente pour un serveur spécifique"""
+    while True:
+        try:
+            # Calculer le temps d'attente jusqu'au prochain intervalle
             wait_seconds, next_time = Maid.get_next_5min_interval()
-            print(f"Prochaine exécution prévue à {next_time.strftime('%H:%M:%S')} (attente de {wait_seconds:.0f} secondes)")
+            print(f"[Guild {guild_id}] Attente de {wait_seconds:.1f} secondes jusqu'à {next_time.strftime('%H:%M:%S')}")
+            
+            # Attendre jusqu'au prochain intervalle
             await asyncio.sleep(wait_seconds)
             
-            if aga_channel:
-                try:
-                    embed_result = await Maid.shop_aga()
-                    
-                    # Vérifier que le résultat est bien un embed et non un message d'erreur
-                    if isinstance(embed_result, discord.Embed):
-                        # Déboguer l'embed avant envoi
-                        print(f"Embed title: {embed_result.title}")
-                        print(f"Embed description: {embed_result.description}")
-                        print(f"Nombre de fields: {len(embed_result.fields)}")
-                        
-                        # Envoyer l'embed
-                        await aga_channel.send(embed=embed_result)
-                        current_time = datetime.datetime.now().strftime("%H:%M:%S")
-                        print(f"Envoi AGA automatique effectué à {current_time}")
-                    
-                except Exception as e:
-                    print(f"Erreur lors de l'envoi automatique AGA: {e}")
-                    # Optionnel: envoyer un message d'erreur dans le canal
-                    # await aga_channel.send(f"❌ Erreur lors de la mise à jour automatique: {e}")
+            # Vérifier que le canal existe encore
+            if guild_id not in aga_channels:
+                print(f"[Guild {guild_id}] Canal non trouvé, arrêt de la tâche")
+                break
+                
+            channel = aga_channels[guild_id]
             
-    except asyncio.CancelledError:
-        print("Tâche récurrente AGA annulée")
-    except Exception as e:
-        print(f"Erreur dans la tâche récurrente AGA: {e}")
-
+            # Vérifier que le canal est encore accessible
+            try:
+                await channel.fetch_message(channel.last_message_id) if channel.last_message_id else None
+            except:
+                print(f"[Guild {guild_id}] Canal inaccessible, arrêt de la tâche")
+                # Nettoyer les références
+                if guild_id in aga_channels:
+                    del aga_channels[guild_id]
+                if guild_id in aga_tasks:
+                    del aga_tasks[guild_id]
+                break
+            
+            # Récupérer et envoyer les données
+            embed = await Maid.shop_aga()
+            await channel.send(embed=embed)
+            print(f"[Guild {guild_id}] Market AGA envoyé à {datetime.datetime.now().strftime('%H:%M:%S')}")
+            
+        except asyncio.CancelledError:
+            print(f"[Guild {guild_id}] Tâche AGA annulée")
+            break
+        except Exception as e:
+            print(f"[Guild {guild_id}] Erreur dans la tâche AGA: {e}")
+            await asyncio.sleep(60)  # Attendre 1 minute avant de réessayer
+            
 @bot.tree.command(
     name="imediat_aga",
     description="Test immédiat du market AGA"
@@ -598,40 +626,79 @@ async def imediat_aga(interaction: discord.Interaction):
 # Commande pour arrêter la tâche
 @bot.tree.command(
     name="stop_aga",
-    description="Arrête l'envoi automatique du market AGA"
+    description="Arrête l'envoi automatique du market AGA pour ce serveur"
 )
 async def stop_aga(interaction: discord.Interaction):
-    global aga_task
+    guild_id = interaction.guild_id
     
     await interaction.response.defer()
     
-    if aga_task and not aga_task.cancelled():
-        aga_task.cancel()
-        aga_task = None
-        await interaction.followup.send("⏹️ Envoi automatique AGA arrêté.")
-    else:
-        await interaction.followup.send("ℹ️ Aucune tâche AGA active à arrêter.")
+    try:
+        # Arrêter la tâche pour ce serveur
+        if guild_id in aga_tasks:
+            if not aga_tasks[guild_id].cancelled():
+                aga_tasks[guild_id].cancel()
+            del aga_tasks[guild_id]
+            
+        # Supprimer le canal stocké
+        if guild_id in aga_channels:
+            del aga_channels[guild_id]
+            
+        await interaction.followup.send(
+            f"✅ Tâche AGA arrêtée pour ce serveur.\n"
+            f"📊 Serveurs encore actifs : {len(aga_tasks)}"
+        )
+        
+    except Exception as e:
+        print(f"[Guild {guild_id}] Erreur lors de l'arrêt AGA: {e}")
+        await interaction.followup.send(f"❌ Erreur lors de l'arrêt: {e}")
 
 # Commande pour vérifier le statut
 @bot.tree.command(
     name="status_aga",
-    description="Vérifie le statut de la tâche automatique AGA"
+    description="Affiche le statut de l'envoi automatique AGA"
 )
 async def status_aga(interaction: discord.Interaction):
-    global aga_task, aga_channel
+    guild_id = interaction.guild_id
     
-    if aga_task and not aga_task.cancelled():
-        channel_name = aga_channel.name if aga_channel else "Canal inconnu"
-        
-        # Calculer la prochaine exécution
-        _, next_time = Maid.get_next_5min_interval()
-        next_time_str = next_time.strftime("%H:%M")
-        
-        await interaction.response.send_message(
-            f"✅ Tâche AGA active dans #{channel_name}\n🕐 Prochaine exécution : {next_time_str}"
-        )
+    await interaction.response.defer()
+    
+    # Statut pour ce serveur
+    is_active = guild_id in aga_tasks and not aga_tasks[guild_id].cancelled()
+    channel_set = guild_id in aga_channels
+    
+    # Prochaine exécution
+    if is_active:
+        wait_seconds, next_time = Maid.get_next_5min_interval()
+        next_time_str = next_time.strftime("%H:%M:%S")
+        status_msg = f"🟢 **Actif** - Prochaine exécution : {next_time_str}"
     else:
-        await interaction.response.send_message("❌ Aucune tâche AGA active")
+        status_msg = "🔴 **Inactif**"
+    
+    embed = discord.Embed(
+        title="📊 Statut AGA Market",
+        color=0x4CAF50 if is_active else 0xF44336
+    )
+    
+    embed.add_field(
+        name="Ce serveur",
+        value=status_msg,
+        inline=False
+    )
+    
+    embed.add_field(
+        name="Canal configuré",
+        value=f"🟢 {aga_channels[guild_id].mention}" if channel_set else "🔴 Aucun",
+        inline=True
+    )
+    
+    embed.add_field(
+        name="Total serveurs actifs",
+        value=f"{len(aga_tasks)} serveur(s)",
+        inline=True
+    )
+    
+    await interaction.followup.send(embed=embed)
 
 # Démarrage du bot et le serveur web
 subprocess.run('source ./venv/bin/activate', shell=True)
