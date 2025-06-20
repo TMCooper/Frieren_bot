@@ -85,7 +85,7 @@ class Holo:
         else:
             await interaction.followup.send("Vous n'êtes pas autorisé à mettre à jour le bot.")
     
-    async def fruit_refresh(ID, interaction):
+    async def db_gag_refresh(ID, interaction):
         if int(ID) == int(DEV_ID):
             await interaction.followup.send("Actualisation de la liste...")
 
