@@ -1084,7 +1084,7 @@ async def list_roles(interaction: discord.Interaction):
 @bot.tree.command(name="db_gag_refresh", description="Actualise la base de donnée pour l'autocomplete")
 async def db_gag_refresh(interaction: discord.Interaction):
     await interaction.response.defer()
-    msg = await Holo.db_gag(interaction.user.id, interaction)
+    msg = await Holo.db_gag_refresh(interaction.user.id, interaction)
     if msg:
         await interaction.followup.send(msg)
     
