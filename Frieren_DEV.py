@@ -613,7 +613,7 @@ async def imediat_aga(interaction: discord.Interaction):
         if isinstance(embed_result, discord.Embed):
             if mentions and mentions.strip():
                 await interaction.followup.send(
-                    content=f"🔔 **Test du market avec mentions:**\n{mentions}", 
+                    content=f"🔔 {mentions}", 
                     embed=embed_result,
                     allowed_mentions=discord.AllowedMentions(roles=True)
                 )

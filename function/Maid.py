@@ -618,40 +618,59 @@ class Maid:
         url = "https://growagardenpro.com/gear/"
         soup = await Yui.request(url)
 
-        script = soup.find("script", {"type": "application/ld+json"})
-        json_data = json.loads(script.string)
+        gears = []
 
-        gear = []
+        # Sélectionne toutes les cartes d’équipement
+        cards = soup.select('a[href^="/gear/"]')
 
-        for obj in json_data["@graph"]:
-            if obj.get("@type") == "CollectionPage" and "mainEntity" in obj:
-                items = obj["mainEntity"].get("itemListElement", [])
-                for item in items:
-                    if item.get("@type") == "Product":
-                        gear_data = {
-                            "name": item.get("name"),
-                            "description": item.get("description"),
-                            "url": item.get("url"),
-                            "image": item.get("image"),
-                            "identifier": item.get("identifier"),
-                            "brand": item.get("brand", {}).get("name"),
-                            "price": item.get("offers", {}).get("price"),
-                            "price_currency": item.get("offers", {}).get("priceCurrency"),
-                            "availability": item.get("offers", {}).get("availability"),
-                            "rating": item.get("aggregateRating", {}).get("ratingValue"),
-                            "rating_count": item.get("aggregateRating", {}).get("ratingCount"),
-                            "position": item.get("position"),
-                            "additional": {}
-                        }
+        for card in cards:
+            try:
+                name = card.select_one("h3").text.strip()
+                url_gear = "https://growagardenpro.com" + card["href"]
+                img_tag = card.select_one("img")
+                image = img_tag["src"] if img_tag else None
+                if image and image.startswith("/"):
+                    image = "https://growagardenpro.com" + image
 
-                        # Récupérer TOUTES les propriétés supplémentaires
-                        for prop in item.get("additionalProperty", []):
-                            gear_data["additional"][prop["name"]] = prop["value"]
+                gear = {
+                    "name": name,
+                    "url": url_gear,
+                    "image": image,
+                    "rarity": None,
+                    "type": None,
+                    "available": None,
+                    "base_value": None
+                }
 
-                        gear.append(gear_data)
+                # Badges (rarity, type, etc.)
+                badges = card.select(".absolute .text-xs")
+                for badge in badges:
+                    text = badge.text.strip().lower()
+                    if text in ["common", "uncommon", "rare", "legendary", "mythical", "divine", "unknown"]:
+                        gear["rarity"] = text.title()
+                    elif text:  # Potentiellement le type ("Weapon", "Tool", etc.)
+                        gear["type"] = text.title()
 
-        # Sauvegarde dans fruit.json
+                # Disponibilité (Yes / No)
+                available_tag = card.find("span", string=lambda x: x and x.lower() in ["yes", "no"])
+                if available_tag:
+                    gear["available"] = available_tag.text.strip().lower() == "yes"
+
+                # Valeur de base (Base Value)
+                value_block = card.select_one("div:has(span:contains('Base Value'))")
+                if value_block:
+                    value_text = value_block.select_one("span.font-medium.text-white")
+                    if value_text:
+                        gear["base_value"] = value_text.text.replace(",", "").strip()
+
+                gears.append(gear)
+
+            except Exception as e:
+                print(f"[Erreur sur une carte d’équipement] {e}")
+                continue
+
+        # Sauvegarde JSON
         with open("gear.json", "w", encoding="utf-8") as f:
-            json.dump(gear, f, ensure_ascii=False, indent=4)
+            json.dump(gears, f, ensure_ascii=False, indent=4)
 
-        return "OK"
+        return print(f"{len(gears)} équipements extraits depuis le HTML avec succès.")
