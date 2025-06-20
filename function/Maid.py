@@ -550,46 +550,68 @@ class Maid:
 
     @staticmethod
     async def extract_fruit_names():
+
         url = "https://growagardenpro.com/crops/"
         soup = await Yui.request(url)
 
-        script = soup.find("script", {"type": "application/ld+json"})
-        json_data = json.loads(script.string)
-
         fruits = []
 
-        for obj in json_data["@graph"]:
-            if obj.get("@type") == "CollectionPage" and "mainEntity" in obj:
-                items = obj["mainEntity"].get("itemListElement", [])
-                for item in items:
-                    if item.get("@type") == "Product":
-                        fruit_data = {
-                            "name": item.get("name"),
-                            "description": item.get("description"),
-                            "url": item.get("url"),
-                            "image": item.get("image"),
-                            "identifier": item.get("identifier"),
-                            "brand": item.get("brand", {}).get("name"),
-                            "price": item.get("offers", {}).get("price"),
-                            "price_currency": item.get("offers", {}).get("priceCurrency"),
-                            "availability": item.get("offers", {}).get("availability"),
-                            "rating": item.get("aggregateRating", {}).get("ratingValue"),
-                            "rating_count": item.get("aggregateRating", {}).get("ratingCount"),
-                            "position": item.get("position"),
-                            "additional": {}
-                        }
+        # Sélectionne toutes les cartes de fruits
+        cards = soup.select('a[href^="/crops/"]')
 
-                        # Récupérer TOUTES les propriétés supplémentaires
-                        for prop in item.get("additionalProperty", []):
-                            fruit_data["additional"][prop["name"]] = prop["value"]
+        for card in cards:
+            try:
+                name = card.select_one("h3").text.strip()
+                url_fruit = "https://growagardenpro.com" + card["href"]
+                img_tag = card.select_one("img")
+                image = img_tag["src"] if img_tag else None
+                if image and image.startswith("/"):
+                    image = "https://growagardenpro.com" + image
 
-                        fruits.append(fruit_data)
+                # Extraction basique
+                fruit = {
+                    "name": name,
+                    "url": url_fruit,
+                    "image": image,
+                    "rarity": None,
+                    "harvest_type": None,
+                    "available": None,
+                    "base_value": None
+                }
 
-        # Sauvegarde dans fruit.json
+                # Rareté / Type de récolte via badges
+                badges = card.select(".absolute .text-xs")
+                for badge in badges:
+                    text = badge.text.strip().lower()
+                    if text in ["common", "uncommon", "rare", "legendary", "mythical", "divine", "unknown"]:
+                        fruit["rarity"] = text.title()
+                    elif text in ["single", "multi"]:
+                        fruit["harvest_type"] = text.title()
+
+                # Disponibilité (oui/non)
+                available_tag = card.find("span", string=lambda x: x and x.lower() in ["yes", "no"])
+                if available_tag:
+                    fruit["available"] = available_tag.text.strip().lower() == "yes"
+
+                # Valeur de base (base value)
+                value_block = card.select_one("div:has(span:contains('Base Value'))")
+                if value_block:
+                    value_text = value_block.select_one("span.font-medium.text-white")
+                    if value_text:
+                        fruit["base_value"] = value_text.text.replace(",", "").strip()
+
+                fruits.append(fruit)
+
+            except Exception as e:
+                print(f"[Erreur sur une carte de fruit] {e}")
+                continue
+
+        # Sauvegarde JSON
         with open("fruits.json", "w", encoding="utf-8") as f:
             json.dump(fruits, f, ensure_ascii=False, indent=4)
 
-        return "OK"
+        return print(f"{len(fruits)} fruits extraits depuis le HTML avec succès.")
+
     
     @staticmethod
     async def extract_gear_names():
