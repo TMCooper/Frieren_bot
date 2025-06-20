@@ -8,6 +8,7 @@ import time
 from pathlib import Path
 # import platform
 from function.Yui import *
+from function.Maid import *
 
 translator = Translator()
 load_dotenv()
@@ -83,3 +84,12 @@ class Holo:
             os.execv(sys.executable, ['python'] + sys.argv)
         else:
             await interaction.followup.send("Vous n'êtes pas autorisé à mettre à jour le bot.")
+    
+    async def fruit_refresh(ID, interaction):
+        if int(ID) == int(DEV_ID):
+            await interaction.followup.send("Actualisation de la liste...")
+
+            await Maid.extract_gear_names()
+            await Maid.extract_fruit_names()
+        else :
+            return "Permission d'actualisation non accorder"

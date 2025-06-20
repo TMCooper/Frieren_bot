@@ -556,7 +556,9 @@ async def setup_aga(interaction: discord.Interaction):
         await interaction.followup.send(
             f"✅ Setup AGA terminé pour ce serveur ! Envoi automatique toutes les 5 minutes activé.\n"
             f"🕐 Prochaine exécution : {next_time_str}\n"
-            f"📊 Serveurs actifs : {len(aga_tasks)}"
+            f"📊 Serveurs actifs : {len(aga_tasks)}\n"
+            f"🍎 Mentions des fruits activées\n"
+            f"⚙️ Mentions des gears activées"
         )
         
     except Exception as e:
@@ -593,34 +595,67 @@ async def aga_recurring_task(guild_id):
                     del aga_tasks[guild_id]
                 break
             
-            # Récupérer et envoyer les données
-            embed = await Maid.shop_aga()
-            await channel.send(embed=embed)
-            print(f"[Guild {guild_id}] Market AGA envoyé à {datetime.datetime.now().strftime('%H:%M:%S')}")
+            # Récupérer et envoyer les données avec support des gears
+            result = await Maid.shop_aga(guild_id)
+            
+            # Gérer le tuple retourné
+            if isinstance(result, tuple):
+                embed, mentions = result
+            else:
+                embed = result
+                mentions = None
+
+            # Envoyer le message
+            if mentions and mentions.strip():
+                await channel.send(content=mentions, embed=embed, allowed_mentions=discord.AllowedMentions(roles=True))
+                print(f"[Guild {guild_id}] Market AGA envoyé avec mentions (fruits + gears) à {datetime.datetime.now().strftime('%H:%M:%S')}")
+            else:
+                await channel.send(embed=embed)
+                print(f"[Guild {guild_id}] Market AGA envoyé sans mentions à {datetime.datetime.now().strftime('%H:%M:%S')}")
             
         except asyncio.CancelledError:
             print(f"[Guild {guild_id}] Tâche AGA annulée")
             break
         except Exception as e:
             print(f"[Guild {guild_id}] Erreur dans la tâche AGA: {e}")
-            await asyncio.sleep(60)  # Attendre 1 minute avant de réessayer
+            await asyncio.sleep(60)
 
 @bot.tree.command(
     name="imediat_aga",
-    description="Test immédiat du market AGA"
+    description="Test immédiat du market AGA avec mentions des fruits et gears"
 )
 async def imediat_aga(interaction: discord.Interaction):
     await interaction.response.defer()
     
     try:
-        embed_result = await Maid.shop_aga()
+        result = await Maid.shop_aga(interaction.guild_id)
+        
+        if isinstance(result, tuple):
+            embed_result, mentions = result
+            print(f"Mentions reçues (fruits + gears): {mentions}")
+        else:
+            embed_result = result
+            mentions = None
         
         if isinstance(embed_result, discord.Embed):
-            await interaction.followup.send(embed=embed_result)
+            if mentions and mentions.strip():
+                await interaction.followup.send(
+                    content=f"🔔 **Test du market avec mentions:**\n{mentions}", 
+                    embed=embed_result,
+                    allowed_mentions=discord.AllowedMentions(roles=True)
+                )
+                print("Message envoyé avec mentions des fruits et gears")
+            else:
+                await interaction.followup.send(
+                    content="ℹ️ **Test du market sans mentions** (aucun fruit/gear configuré trouvé)",
+                    embed=embed_result
+                )
+                print("Message envoyé sans mentions")
         else:
             await interaction.followup.send(f"Erreur: {embed_result}")
             
     except Exception as e:
+        print(f"Erreur complète: {e}")
         await interaction.followup.send(f"❌ Erreur lors du test: {e}")
 
 # Commande pour arrêter la tâche
@@ -699,6 +734,677 @@ async def status_aga(interaction: discord.Interaction):
     )
     
     await interaction.followup.send(embed=embed)
+
+@bot.tree.command(
+    name="fruit_role",
+    description="Associe un fruit à un rôle à ping lors de l'affichage du market"
+)
+@app_commands.describe(fruit="Nom du fruit", role="Rôle à ping")
+async def fruit_role(interaction: discord.Interaction, fruit: str, role: discord.Role):
+    await interaction.response.defer(ephemeral=True)
+    
+    try:
+        # Charger les rôles enregistrés
+        if os.path.exists("fruit_roles.json"):
+            with open("fruit_roles.json", "r", encoding="utf-8") as f:
+                fruit_roles = json.load(f)
+        else:
+            fruit_roles = {}
+
+        guild_id = str(interaction.guild_id)
+        if guild_id not in fruit_roles:
+            fruit_roles[guild_id] = {}
+
+        # Normaliser le nom du fruit (utiliser l'identifier si possible)
+        fruit_key = fruit.lower().strip()
+        
+        # Chercher les infos du fruit dans fruits.json pour avoir plus de détails
+        fruit_info = None
+        try:
+            with open("fruits.json", "r", encoding="utf-8") as f:
+                all_fruits = json.load(f)
+            
+            # Chercher le fruit par nom ou identifier
+            for crop in all_fruits:
+                if (crop.get("name", "").lower() == fruit.lower() or 
+                    crop.get("identifier", "").lower() == fruit.lower()):
+                    fruit_info = crop
+                    fruit_key = crop.get("identifier", fruit.lower())  # Utiliser l'identifier comme clé
+                    break
+        except FileNotFoundError:
+            pass
+
+        # Enregistrer l'association fruit → role.id
+        fruit_roles[guild_id][fruit_key] = role.id
+
+        with open("fruit_roles.json", "w", encoding="utf-8") as f:
+            json.dump(fruit_roles, f, ensure_ascii=False, indent=4)
+
+        # Message de confirmation avec plus d'infos si disponibles
+        if fruit_info:
+            rarity = fruit_info.get("additional", {}).get("Rarity", "Unknown")
+            harvest_type = fruit_info.get("additional", {}).get("Harvest Type", "Unknown")
+            price = fruit_info.get("price", 0)
+            
+            embed = discord.Embed(
+                title="✅ Association créée",
+                description=f"Le fruit **{fruit_info['name']}** est maintenant associé au rôle {role.mention}",
+                color=0x4CAF50
+            )
+            embed.add_field(
+                name="📊 Informations",
+                value=f"**Rareté:** {rarity}\n**Type:** {harvest_type}\n**Valeur:** {price:,}",
+                inline=True
+            )
+            embed.set_thumbnail(url=fruit_info.get("image", ""))
+            
+            await interaction.followup.send(embed=embed, ephemeral=True)
+        else:
+            await interaction.followup.send(
+                f"✅ Le fruit **{fruit}** est maintenant associé au rôle {role.mention}.", 
+                ephemeral=True
+            )
+
+    except Exception as e:
+        await interaction.followup.send(f"❌ Une erreur est survenue : {str(e)}", ephemeral=True)
+
+@fruit_role.autocomplete("fruit")
+async def fruit_autocomplete(interaction: discord.Interaction, current: str):
+    try:
+        with open("fruits.json", "r", encoding="utf-8") as f:
+            all_fruits = json.load(f)
+    except FileNotFoundError:
+        return [app_commands.Choice(name="❌ Fichier fruits.json introuvable", value="error")]
+
+    current_lower = current.lower()
+    suggestions = []
+    
+    for fruit in all_fruits:
+        fruit_name = fruit.get("name", "Unknown")
+        fruit_identifier = fruit.get("identifier", "")
+        rarity = fruit.get("additional", {}).get("Rarity", "")
+        price = fruit.get("price", 0)
+        
+        # Chercher dans le nom et l'identifier
+        if (current_lower in fruit_name.lower() or 
+            current_lower in fruit_identifier.lower()):
+            
+            # Emoji selon la rareté
+            rarity_emoji = {
+                "Common": "🟢",
+                "Uncommon": "🔵", 
+                "Rare": "🟣",
+                "Epic": "🟠",
+                "Legendary": "🟡",
+                "Mythical": "🔴",
+                "Divine": "✨"
+            }.get(rarity, "🍎")
+            
+            # Format: Emoji + Nom + (Rareté) + Prix
+            display_name = f"{rarity_emoji} {fruit_name}"
+            if rarity:
+                display_name += f" ({rarity})"
+            if price > 0:
+                display_name += f" - {price:,}"
+            
+            # Utiliser l'identifier comme valeur pour la cohérence
+            value = fruit_identifier if fruit_identifier else fruit_name.lower()
+            
+            suggestions.append(
+                app_commands.Choice(name=display_name[:100], value=value)  # Limite Discord 100 chars
+            )
+    
+    # Trier par rareté puis par prix (optionnel)
+    rarity_order = {"Divine": 0, "Mythical": 1, "Legendary": 2, "Epic": 3, "Rare": 4, "Uncommon": 5, "Common": 6}
+    
+    try:
+        suggestions.sort(key=lambda x: (
+            rarity_order.get(
+                next((f.get("additional", {}).get("Rarity", "Common") 
+                      for f in all_fruits 
+                      if f.get("identifier") == x.value or f.get("name").lower() == x.value), 
+                     "Common"), 
+                7
+            ),
+            -next((f.get("price", 0) 
+                   for f in all_fruits 
+                   if f.get("identifier") == x.value or f.get("name").lower() == x.value), 
+                  0)
+        ))
+    except:
+        pass  # Si le tri échoue, on garde l'ordre original
+
+    return suggestions[:25]  # Discord n'autorise que 25 éléments
+
+# Commande améliorée pour lister les fruits avec leurs infos
+@bot.tree.command(
+    name="list_fruit_roles",
+    description="Affiche tous les fruits configurés avec leurs rôles et informations"
+)
+async def list_fruit_roles(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+    
+    try:
+        if not os.path.exists("fruit_roles.json"):
+            await interaction.followup.send("❌ Aucun fruit configuré.", ephemeral=True)
+            return
+            
+        with open("fruit_roles.json", "r", encoding="utf-8") as f:
+            fruit_roles = json.load(f)
+        
+        guild_id = str(interaction.guild_id)
+        if guild_id not in fruit_roles or not fruit_roles[guild_id]:
+            await interaction.followup.send("❌ Aucun fruit configuré pour ce serveur.", ephemeral=True)
+            return
+        
+        # Charger les infos des fruits
+        fruit_infos = {}
+        try:
+            with open("fruits.json", "r", encoding="utf-8") as f:
+                all_fruits = json.load(f)
+                for fruit in all_fruits:
+                    identifier = fruit.get("identifier", fruit.get("name", "").lower())
+                    fruit_infos[identifier] = fruit
+        except FileNotFoundError:
+            pass
+        
+        embed = discord.Embed(
+            title="🍎 Fruits configurés",
+            description="Liste des fruits avec leurs rôles associés",
+            color=0x4CAF50
+        )
+        
+        # Grouper par rareté pour un meilleur affichage
+        fruits_by_rarity = {}
+        
+        for fruit_key, role_id in fruit_roles[guild_id].items():
+            role = interaction.guild.get_role(role_id)
+            role_mention = role.mention if role else f"❌ Rôle supprimé (ID: {role_id})"
+            
+            # Récupérer les infos du fruit
+            fruit_info = fruit_infos.get(fruit_key, {})
+            fruit_name = fruit_info.get("name", fruit_key.title())
+            rarity = fruit_info.get("additional", {}).get("Rarity", "Unknown")
+            price = fruit_info.get("price", 0)
+            
+            if rarity not in fruits_by_rarity:
+                fruits_by_rarity[rarity] = []
+            
+            fruit_display = f"🍓 **{fruit_name}**"
+            if price > 0:
+                fruit_display += f" ({price:,})"
+            fruit_display += f"\n└ {role_mention}"
+            
+            fruits_by_rarity[rarity].append(fruit_display)
+        
+        # Ajouter les champs par rareté
+        rarity_order = ["Divine", "Mythical", "Legendary", "Epic", "Rare", "Uncommon", "Common", "Unknown"]
+        
+        for rarity in rarity_order:
+            if rarity in fruits_by_rarity:
+                rarity_emoji = {
+                    "Common": "🟢", "Uncommon": "🔵", "Rare": "🟣",
+                    "Epic": "🟠", "Legendary": "🟡", "Mythical": "🔴", 
+                    "Divine": "✨", "Unknown": "❓"
+                }.get(rarity, "❓")
+                
+                fruits_text = "\n\n".join(fruits_by_rarity[rarity])
+                embed.add_field(
+                    name=f"{rarity_emoji} {rarity} ({len(fruits_by_rarity[rarity])})",
+                    value=fruits_text,
+                    inline=False
+                )
+        
+        await interaction.followup.send(embed=embed, ephemeral=True)
+        
+    except Exception as e:
+        await interaction.followup.send(f"❌ Erreur : {str(e)}", ephemeral=True)
+
+# Commande pour supprimer un fruit avec autocomplétion
+@bot.tree.command(
+    name="remove_fruit_role",
+    description="Supprime l'association d'un fruit avec un rôle"
+)
+@app_commands.describe(fruit="Nom du fruit à supprimer")
+async def remove_fruit_role(interaction: discord.Interaction, fruit: str):
+    await interaction.response.defer(ephemeral=True)
+    
+    try:
+        if not os.path.exists("fruit_roles.json"):
+            await interaction.followup.send("❌ Aucun fruit configuré.", ephemeral=True)
+            return
+            
+        with open("fruit_roles.json", "r", encoding="utf-8") as f:
+            fruit_roles = json.load(f)
+        
+        guild_id = str(interaction.guild_id)
+        fruit_key = fruit.lower().strip()
+        
+        if guild_id not in fruit_roles or fruit_key not in fruit_roles[guild_id]:
+            await interaction.followup.send(f"❌ Le fruit **{fruit}** n'est pas configuré.", ephemeral=True)
+            return
+        
+        # Supprimer le fruit
+        del fruit_roles[guild_id][fruit_key]
+        
+        # Nettoyer si le serveur n'a plus de fruits
+        if not fruit_roles[guild_id]:
+            del fruit_roles[guild_id]
+        
+        with open("fruit_roles.json", "w", encoding="utf-8") as f:
+            json.dump(fruit_roles, f, ensure_ascii=False, indent=4)
+        
+        await interaction.followup.send(f"✅ Le fruit **{fruit}** a été supprimé.", ephemeral=True)
+        
+    except Exception as e:
+        await interaction.followup.send(f"❌ Erreur : {str(e)}", ephemeral=True)
+
+@remove_fruit_role.autocomplete("fruit")
+async def remove_fruit_autocomplete(interaction: discord.Interaction, current: str):
+    """Autocomplétion pour supprimer - ne montre que les fruits configurés"""
+    try:
+        # Charger les fruits configurés pour ce serveur
+        with open("fruit_roles.json", "r", encoding="utf-8") as f:
+            fruit_roles = json.load(f)
+        
+        guild_id = str(interaction.guild_id)
+        if guild_id not in fruit_roles:
+            return []
+        
+        configured_fruits = fruit_roles[guild_id].keys()
+        
+        # Charger les infos détaillées
+        fruit_infos = {}
+        try:
+            with open("fruits.json", "r", encoding="utf-8") as f:
+                all_fruits = json.load(f)
+                for fruit in all_fruits:
+                    identifier = fruit.get("identifier", fruit.get("name", "").lower())
+                    fruit_infos[identifier] = fruit
+        except FileNotFoundError:
+            pass
+        
+        suggestions = []
+        current_lower = current.lower()
+        
+        for fruit_key in configured_fruits:
+            fruit_info = fruit_infos.get(fruit_key, {})
+            fruit_name = fruit_info.get("name", fruit_key.title())
+            
+            if current_lower in fruit_name.lower() or current_lower in fruit_key:
+                rarity = fruit_info.get("additional", {}).get("Rarity", "")
+                rarity_emoji = {
+                    "Common": "🟢", "Uncommon": "🔵", "Rare": "🟣",
+                    "Epic": "🟠", "Legendary": "🟡", "Mythical": "🔴", 
+                    "Divine": "✨"
+                }.get(rarity, "🍎")
+                
+                display_name = f"{rarity_emoji} {fruit_name}"
+                if rarity:
+                    display_name += f" ({rarity})"
+                
+                suggestions.append(
+                    app_commands.Choice(name=display_name, value=fruit_key)
+                )
+        
+        return suggestions[:25]
+        
+    except Exception as e:
+        return [app_commands.Choice(name=f"❌ Erreur: {str(e)}", value="error")]
+
+@bot.tree.command(name="test_ping", description="Test les pings de rôles")
+async def test_ping(interaction: discord.Interaction, role_id: str):
+    await interaction.response.send_message(f"<@&{role_id}>", allowed_mentions=discord.AllowedMentions(roles=True))
+
+@bot.tree.command(name="list_roles", description="Liste tous les rôles et leurs IDs")
+async def list_roles(interaction: discord.Interaction):
+    await interaction.response.defer()
+    
+    guild = interaction.guild
+    roles_info = []
+    
+    for role in guild.roles:
+        if role.name != "@everyone":
+            mentionable = "✅" if role.mentionable else "❌"
+            roles_info.append(f"{mentionable} **{role.name}** - ID: `{role.id}`")
+    
+    # Diviser en chunks si trop long
+    if len(roles_info) > 20:
+        roles_info = roles_info[:20] + [f"... et {len(guild.roles) - 21} autres rôles"]
+    
+    embed = discord.Embed(
+        title="📋 Liste des rôles",
+        description="\n".join(roles_info),
+        color=0x0099FF
+    )
+    embed.set_footer(text="✅ = Mentionnable, ❌ = Non mentionnable")
+    
+    await interaction.followup.send(embed=embed)
+
+@bot.tree.command(name="fruit_refresh", description="Actualise la base de donnée pour l'autocomplete")
+async def fruit_refresh(interaction: discord.Interaction):
+    await interaction.response.defer()
+    msg = await Holo.fruit_refresh(interaction.user.id, interaction)
+    if msg:
+        await interaction.followup.send(msg)
+    
+@bot.tree.command(
+    name="gear_role",
+    description="Associe un gear à un rôle à ping lors de l'affichage du market"
+)
+@app_commands.describe(gear="Nom du gear", role="Rôle à ping")
+async def gear_role(interaction: discord.Interaction, gear: str, role: discord.Role):
+    await interaction.response.defer(ephemeral=True)
+    
+    try:
+        # Charger les rôles enregistrés
+        if os.path.exists("gear_roles.json"):
+            with open("gear_roles.json", "r", encoding="utf-8") as f:
+                gear_roles = json.load(f)
+        else:
+            gear_roles = {}
+
+        guild_id = str(interaction.guild_id)
+        if guild_id not in gear_roles:
+            gear_roles[guild_id] = {}
+
+        # Normaliser le nom du gear (utiliser l'identifier si possible)
+        gear_key = gear.lower().strip()
+        
+        # Chercher les infos du gear dans gear.json pour avoir plus de détails
+        gear_info = None
+        try:
+            with open("gear.json", "r", encoding="utf-8") as f:
+                all_gears = json.load(f)
+            
+            # Chercher le gear par nom ou identifier
+            for item in all_gears:
+                if (item.get("name", "").lower() == gear.lower() or 
+                    item.get("identifier", "").lower() == gear.lower()):
+                    gear_info = item
+                    gear_key = item.get("identifier", gear.lower())  # Utiliser l'identifier comme clé
+                    break
+        except FileNotFoundError:
+            pass
+
+        # Enregistrer l'association gear → role.id
+        gear_roles[guild_id][gear_key] = role.id
+
+        with open("gear_roles.json", "w", encoding="utf-8") as f:
+            json.dump(gear_roles, f, ensure_ascii=False, indent=4)
+
+        # Message de confirmation avec plus d'infos si disponibles
+        if gear_info:
+            tier = gear_info.get("additional", {}).get("Tier", "Unknown")
+            effects = gear_info.get("additional", {}).get("Effects", "Unknown")
+            price = gear_info.get("price", 0)
+            robux_price = gear_info.get("additional", {}).get("Robux Price", "N/A")
+            
+            embed = discord.Embed(
+                title="✅ Association créée",
+                description=f"Le gear **{gear_info['name']}** est maintenant associé au rôle {role.mention}",
+                color=0x4CAF50
+            )
+            embed.add_field(
+                name="📊 Informations",
+                value=f"**Tier:** {tier}\n**Effets:** {effects}\n**Prix:** {price:,} Sheckles\n**Robux:** {robux_price}",
+                inline=True
+            )
+            embed.set_thumbnail(url=gear_info.get("image", ""))
+            
+            await interaction.followup.send(embed=embed, ephemeral=True)
+        else:
+            await interaction.followup.send(
+                f"✅ Le gear **{gear}** est maintenant associé au rôle {role.mention}.", 
+                ephemeral=True
+            )
+
+    except Exception as e:
+        await interaction.followup.send(f"❌ Une erreur est survenue : {str(e)}", ephemeral=True)
+
+@gear_role.autocomplete("gear")
+async def gear_autocomplete(interaction: discord.Interaction, current: str):
+    try:
+        with open("gear.json", "r", encoding="utf-8") as f:
+            all_gears = json.load(f)
+    except FileNotFoundError:
+        return [app_commands.Choice(name="❌ Fichier gear.json introuvable", value="error")]
+
+    current_lower = current.lower()
+    suggestions = []
+    
+    for gear in all_gears:
+        gear_name = gear.get("name", "Unknown")
+        gear_identifier = gear.get("identifier", "")
+        tier = gear.get("additional", {}).get("Tier", "")
+        price = gear.get("price", 0)
+        
+        # Chercher dans le nom et l'identifier
+        if (current_lower in gear_name.lower() or 
+            current_lower in gear_identifier.lower()):
+            
+            # Emoji selon le tier
+            tier_emoji = {
+                "Common": "🟢",
+                "Uncommon": "🔵", 
+                "Rare": "🟣",
+                "Epic": "🟠",
+                "Legendary": "🟡",
+                "Mythical": "🔴",
+                "Divine": "✨"
+            }.get(tier, "⚙️")
+            
+            # Format: Emoji + Nom + (Tier) + Prix
+            display_name = f"{tier_emoji} {gear_name}"
+            if tier:
+                display_name += f" ({tier})"
+            if price > 0:
+                display_name += f" - {price:,}"
+            
+            # Utiliser l'identifier comme valeur pour la cohérence
+            value = gear_identifier if gear_identifier else gear_name.lower()
+            
+            suggestions.append(
+                app_commands.Choice(name=display_name[:100], value=value)  # Limite Discord 100 chars
+            )
+    
+    # Trier par tier puis par prix (optionnel)
+    tier_order = {"Divine": 0, "Mythical": 1, "Legendary": 2, "Epic": 3, "Rare": 4, "Uncommon": 5, "Common": 6}
+    
+    try:
+        suggestions.sort(key=lambda x: (
+            tier_order.get(
+                next((g.get("additional", {}).get("Tier", "Common") 
+                      for g in all_gears 
+                      if g.get("identifier") == x.value or g.get("name").lower() == x.value), 
+                     "Common"), 
+                7
+            ),
+            -next((g.get("price", 0) 
+                   for g in all_gears 
+                   if g.get("identifier") == x.value or g.get("name").lower() == x.value), 
+                  0)
+        ))
+    except:
+        pass  # Si le tri échoue, on garde l'ordre original
+
+    return suggestions[:25]  # Discord n'autorise que 25 éléments
+
+# Commande améliorée pour lister les gears avec leurs infos
+@bot.tree.command(
+    name="list_gear_roles",
+    description="Affiche tous les gears configurés avec leurs rôles et informations"
+)
+async def list_gear_roles(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+    
+    try:
+        if not os.path.exists("gear_roles.json"):
+            await interaction.followup.send("❌ Aucun gear configuré.", ephemeral=True)
+            return
+            
+        with open("gear_roles.json", "r", encoding="utf-8") as f:
+            gear_roles = json.load(f)
+        
+        guild_id = str(interaction.guild_id)
+        if guild_id not in gear_roles or not gear_roles[guild_id]:
+            await interaction.followup.send("❌ Aucun gear configuré pour ce serveur.", ephemeral=True)
+            return
+        
+        # Charger les infos des gears
+        gear_infos = {}
+        try:
+            with open("gear.json", "r", encoding="utf-8") as f:
+                all_gears = json.load(f)
+                for gear in all_gears:
+                    identifier = gear.get("identifier", gear.get("name", "").lower())
+                    gear_infos[identifier] = gear
+        except FileNotFoundError:
+            pass
+        
+        embed = discord.Embed(
+            title="⚙️ Gears configurés",
+            description="Liste des gears avec leurs rôles associés",
+            color=0x4CAF50
+        )
+        
+        # Grouper par tier pour un meilleur affichage
+        gears_by_tier = {}
+        
+        for gear_key, role_id in gear_roles[guild_id].items():
+            role = interaction.guild.get_role(role_id)
+            role_mention = role.mention if role else f"❌ Rôle supprimé (ID: {role_id})"
+            
+            # Récupérer les infos du gear
+            gear_info = gear_infos.get(gear_key, {})
+            gear_name = gear_info.get("name", gear_key.title())
+            tier = gear_info.get("additional", {}).get("Tier", "Unknown")
+            price = gear_info.get("price", 0)
+            
+            if tier not in gears_by_tier:
+                gears_by_tier[tier] = []
+            
+            gear_display = f"⚙️ **{gear_name}**"
+            if price > 0:
+                gear_display += f" ({price:,})"
+            gear_display += f"\n└ {role_mention}"
+            
+            gears_by_tier[tier].append(gear_display)
+        
+        # Ajouter les champs par tier
+        tier_order = ["Divine", "Mythical", "Legendary", "Epic", "Rare", "Uncommon", "Common", "Unknown"]
+        
+        for tier in tier_order:
+            if tier in gears_by_tier:
+                tier_emoji = {
+                    "Common": "🟢", "Uncommon": "🔵", "Rare": "🟣",
+                    "Epic": "🟠", "Legendary": "🟡", "Mythical": "🔴", 
+                    "Divine": "✨", "Unknown": "❓"
+                }.get(tier, "❓")
+                
+                gears_text = "\n\n".join(gears_by_tier[tier])
+                embed.add_field(
+                    name=f"{tier_emoji} {tier} ({len(gears_by_tier[tier])})",
+                    value=gears_text,
+                    inline=False
+                )
+        
+        await interaction.followup.send(embed=embed, ephemeral=True)
+        
+    except Exception as e:
+        await interaction.followup.send(f"❌ Erreur : {str(e)}", ephemeral=True)
+
+# Commande pour supprimer un gear avec autocomplétion
+@bot.tree.command(
+    name="remove_gear_role",
+    description="Supprime l'association d'un gear avec un rôle"
+)
+@app_commands.describe(gear="Nom du gear à supprimer")
+async def remove_gear_role(interaction: discord.Interaction, gear: str):
+    await interaction.response.defer(ephemeral=True)
+    
+    try:
+        if not os.path.exists("gear_roles.json"):
+            await interaction.followup.send("❌ Aucun gear configuré.", ephemeral=True)
+            return
+            
+        with open("gear_roles.json", "r", encoding="utf-8") as f:
+            gear_roles = json.load(f)
+        
+        guild_id = str(interaction.guild_id)
+        gear_key = gear.lower().strip()
+        
+        if guild_id not in gear_roles or gear_key not in gear_roles[guild_id]:
+            await interaction.followup.send(f"❌ Le gear **{gear}** n'est pas configuré.", ephemeral=True)
+            return
+        
+        # Supprimer le gear
+        del gear_roles[guild_id][gear_key]
+        
+        # Nettoyer si le serveur n'a plus de gears
+        if not gear_roles[guild_id]:
+            del gear_roles[guild_id]
+        
+        with open("gear_roles.json", "w", encoding="utf-8") as f:
+            json.dump(gear_roles, f, ensure_ascii=False, indent=4)
+        
+        await interaction.followup.send(f"✅ Le gear **{gear}** a été supprimé.", ephemeral=True)
+        
+    except Exception as e:
+        await interaction.followup.send(f"❌ Erreur : {str(e)}", ephemeral=True)
+
+@remove_gear_role.autocomplete("gear")
+async def remove_gear_autocomplete(interaction: discord.Interaction, current: str):
+    """Autocomplétion pour supprimer - ne montre que les gears configurés"""
+    try:
+        # Charger les gears configurés pour ce serveur
+        with open("gear_roles.json", "r", encoding="utf-8") as f:
+            gear_roles = json.load(f)
+        
+        guild_id = str(interaction.guild_id)
+        if guild_id not in gear_roles:
+            return []
+        
+        configured_gears = gear_roles[guild_id].keys()
+        
+        # Charger les infos détaillées
+        gear_infos = {}
+        try:
+            with open("gear.json", "r", encoding="utf-8") as f:
+                all_gears = json.load(f)
+                for gear in all_gears:
+                    identifier = gear.get("identifier", gear.get("name", "").lower())
+                    gear_infos[identifier] = gear
+        except FileNotFoundError:
+            pass
+        
+        suggestions = []
+        current_lower = current.lower()
+        
+        for gear_key in configured_gears:
+            gear_info = gear_infos.get(gear_key, {})
+            gear_name = gear_info.get("name", gear_key.title())
+            
+            if current_lower in gear_name.lower() or current_lower in gear_key:
+                tier = gear_info.get("additional", {}).get("Tier", "")
+                tier_emoji = {
+                    "Common": "🟢", "Uncommon": "🔵", "Rare": "🟣",
+                    "Epic": "🟠", "Legendary": "🟡", "Mythical": "🔴", 
+                    "Divine": "✨"
+                }.get(tier, "⚙️")
+                
+                display_name = f"{tier_emoji} {gear_name}"
+                if tier:
+                    display_name += f" ({tier})"
+                
+                suggestions.append(
+                    app_commands.Choice(name=display_name, value=gear_key)
+                )
+        
+        return suggestions[:25]
+        
+    except Exception as e:
+        return [app_commands.Choice(name=f"❌ Erreur: {str(e)}", value="error")]
 
 # Démarrage du bot et le serveur web
 subprocess.run('source ./venv/bin/activate', shell=True)

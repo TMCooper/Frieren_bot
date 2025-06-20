@@ -314,7 +314,9 @@ class Maid:
         return titre_animes, links
 
     @staticmethod
-    async def shop_aga():
+    async def shop_aga(guild_id=None, mentions_content = None):
+        guild_id = str(guild_id) if guild_id else "unknown"
+
         url = "https://growagardenpro.com/stock/"
         soup = await Yui.request(url)
         cleaned_html = soup.body.prettify() if soup.body else soup.prettify()
@@ -330,6 +332,8 @@ class Maid:
         }
 
         stock_by_category = {key: [] for key in categories}
+
+        # print(f"Sections trouvées: {[s.get_text(strip=True) for s in soup.find_all('h2')]}")
 
         # Parsing du contenu (même logique que l'original)
         for section in soup.find_all("h2"):
@@ -439,8 +443,65 @@ class Maid:
 
         # Footer
         embed.set_footer(text="Mise à jour automatique toutes les 5 minutes • Hier à 22:30")
+
+        # Vérification des rôles à ping
+        ping_roles = set()
+
+        try:
+            with open("fruit_roles.json", "r", encoding="utf-8") as f:
+                fruit_roles = json.load(f)
+            
+            if guild_id in fruit_roles:
+                role_map = fruit_roles[guild_id]
+                
+                for category_items in stock_by_category.values():
+                    for item in category_items:
+                        fruit_name = item["name"].lower()
+                        if fruit_name in role_map:
+                            ping_roles.add(role_map[fruit_name])
+        except Exception as e:
+            print(f"Erreur lors du chargement des rôles à ping : {e}")
         
-        return embed
+        try:
+            with open("gear_roles.json", "r", encoding="utf-8") as f:
+                gear_roles = json.load(f)
+
+            if guild_id in gear_roles:
+                role_map = gear_roles[guild_id]
+
+                # Charger gear.json pour faire correspondre name → identifier
+                with open("gear.json", "r", encoding="utf-8") as f:
+                    all_gears = json.load(f)
+
+                # Créer un dictionnaire {name.lower(): identifier}
+                name_to_identifier = {
+                    gear["name"].lower(): gear.get("identifier", gear["name"].lower())
+                    for gear in all_gears
+                }
+
+                gear_items = stock_by_category.get("Gear", [])
+                for item in gear_items:
+                    name_lower = item["name"].lower()
+                    identifier = name_to_identifier.get(name_lower)
+
+                    if identifier and identifier in role_map:
+                        ping_roles.add(role_map[identifier])
+        except Exception as e:
+            print(f"Erreur lors du chargement des rôles gear à ping : {e}")
+            
+        # Construire les mentions si il y en a
+        if ping_roles:
+            mentions_content = " ".join(f"<@&{role_id}>" for role_id in ping_roles)
+            print(f"Mentions créées: {mentions_content}")
+            # Ne pas ajouter au embed, juste noter qu'il y en a
+            embed.add_field(
+                name="🔔 Notifications", 
+                value=f"{len(ping_roles)} rôle(s) notifié(s)", 
+                inline=False
+            )
+            
+        print(f"mention_content : {mentions_content}")
+        return embed, mentions_content
 
         
     def get_next_5min_interval():
@@ -465,3 +526,110 @@ class Maid:
         # Calculer le temps d'attente en secondes
         wait_seconds = (next_time - now).total_seconds()
         return wait_seconds, next_time
+    
+    @staticmethod
+    async def get_all_fruit_names():
+        url = "https://growagardenpro.com/crops/"
+        soup = await Yui.request(url)
+        soup = BeautifulSoup(soup.body.prettify(), "html.parser")
+
+        fruit_names = set()
+
+        for section in soup.find_all("h2"):
+            parent_div = section.find_parent("div", class_="bg-[rgb(72,32,14)]")
+            if not parent_div:
+                continue
+
+            for item in parent_div.select(".card-hover"):
+                name_tag = item.find("h3")
+                name = name_tag.get_text(strip=True) if name_tag else None
+                if name:
+                    fruit_names.add(name)
+
+        return sorted(fruit_names)
+
+    @staticmethod
+    async def extract_fruit_names():
+        url = "https://growagardenpro.com/crops/"
+        soup = await Yui.request(url)
+
+        script = soup.find("script", {"type": "application/ld+json"})
+        json_data = json.loads(script.string)
+
+        fruits = []
+
+        for obj in json_data["@graph"]:
+            if obj.get("@type") == "CollectionPage" and "mainEntity" in obj:
+                items = obj["mainEntity"].get("itemListElement", [])
+                for item in items:
+                    if item.get("@type") == "Product":
+                        fruit_data = {
+                            "name": item.get("name"),
+                            "description": item.get("description"),
+                            "url": item.get("url"),
+                            "image": item.get("image"),
+                            "identifier": item.get("identifier"),
+                            "brand": item.get("brand", {}).get("name"),
+                            "price": item.get("offers", {}).get("price"),
+                            "price_currency": item.get("offers", {}).get("priceCurrency"),
+                            "availability": item.get("offers", {}).get("availability"),
+                            "rating": item.get("aggregateRating", {}).get("ratingValue"),
+                            "rating_count": item.get("aggregateRating", {}).get("ratingCount"),
+                            "position": item.get("position"),
+                            "additional": {}
+                        }
+
+                        # Récupérer TOUTES les propriétés supplémentaires
+                        for prop in item.get("additionalProperty", []):
+                            fruit_data["additional"][prop["name"]] = prop["value"]
+
+                        fruits.append(fruit_data)
+
+        # Sauvegarde dans fruit.json
+        with open("fruits.json", "w", encoding="utf-8") as f:
+            json.dump(fruits, f, ensure_ascii=False, indent=4)
+
+        return "OK"
+    
+    @staticmethod
+    async def extract_gear_names():
+        url = "https://growagardenpro.com/gear/"
+        soup = await Yui.request(url)
+
+        script = soup.find("script", {"type": "application/ld+json"})
+        json_data = json.loads(script.string)
+
+        gear = []
+
+        for obj in json_data["@graph"]:
+            if obj.get("@type") == "CollectionPage" and "mainEntity" in obj:
+                items = obj["mainEntity"].get("itemListElement", [])
+                for item in items:
+                    if item.get("@type") == "Product":
+                        gear_data = {
+                            "name": item.get("name"),
+                            "description": item.get("description"),
+                            "url": item.get("url"),
+                            "image": item.get("image"),
+                            "identifier": item.get("identifier"),
+                            "brand": item.get("brand", {}).get("name"),
+                            "price": item.get("offers", {}).get("price"),
+                            "price_currency": item.get("offers", {}).get("priceCurrency"),
+                            "availability": item.get("offers", {}).get("availability"),
+                            "rating": item.get("aggregateRating", {}).get("ratingValue"),
+                            "rating_count": item.get("aggregateRating", {}).get("ratingCount"),
+                            "position": item.get("position"),
+                            "additional": {}
+                        }
+
+                        # Récupérer TOUTES les propriétés supplémentaires
+                        for prop in item.get("additionalProperty", []):
+                            gear_data["additional"][prop["name"]] = prop["value"]
+
+                        gear.append(gear_data)
+
+        # Sauvegarde dans fruit.json
+        with open("gear.json", "w", encoding="utf-8") as f:
+            json.dump(gear, f, ensure_ascii=False, indent=4)
+
+        return "OK"
