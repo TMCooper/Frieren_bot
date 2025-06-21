@@ -1379,6 +1379,234 @@ async def remove_gear_autocomplete(interaction: discord.Interaction, current: st
     except Exception as e:
         return [app_commands.Choice(name=f"❌ Erreur: {str(e)}", value="error")]
 
+@bot.tree.command(
+    name="egg_role",
+    description="Associe un œuf à un rôle à ping lors de l'affichage du market"
+)
+@app_commands.describe(egg="Nom de l'œuf", role="Rôle à ping")
+async def egg_role(interaction: discord.Interaction, egg: str, role: discord.Role):
+    await interaction.response.defer(ephemeral=True)
+
+    try:
+        if os.path.exists("egg_roles.json"):
+            with open("egg_roles.json", "r", encoding="utf-8") as f:
+                egg_roles = json.load(f)
+        else:
+            egg_roles = {}
+
+        guild_id = str(interaction.guild_id)
+        if guild_id not in egg_roles:
+            egg_roles[guild_id] = {}
+
+        egg_key = egg.lower().strip()
+        egg_info = None
+
+        try:
+            with open("eggs.json", "r", encoding="utf-8") as f:
+                all_eggs = json.load(f)
+            for e in all_eggs:
+                if (e.get("name", "").lower() == egg.lower() or 
+                    e.get("identifier", "").lower() == egg.lower()):
+                    egg_info = e
+                    egg_key = e.get("identifier", egg.lower())
+                    break
+        except FileNotFoundError:
+            pass
+
+        egg_roles[guild_id][egg_key] = role.id
+
+        with open("egg_roles.json", "w", encoding="utf-8") as f:
+            json.dump(egg_roles, f, ensure_ascii=False, indent=4)
+
+        if egg_info:
+            rarity = egg_info.get("rarity", "Unknown")
+            price = egg_info.get("base_value", "Inconnu")
+
+            embed = discord.Embed(
+                title="✅ Association créée",
+                description=f"L'œuf **{egg_info['name']}** est maintenant associé au rôle {role.mention}",
+                color=0x4CAF50
+            )
+            embed.add_field(name="📊 Informations", value=f"**Rareté:** {rarity}\n**Valeur:** {price}", inline=True)
+            embed.set_thumbnail(url=egg_info.get("image", ""))
+
+            await interaction.followup.send(embed=embed, ephemeral=True)
+        else:
+            await interaction.followup.send(
+                f"✅ L'œuf **{egg}** est maintenant associé au rôle {role.mention}.",
+                ephemeral=True
+            )
+
+    except Exception as e:
+        await interaction.followup.send(f"❌ Une erreur est survenue : {str(e)}", ephemeral=True)
+@egg_role.autocomplete("egg")
+async def egg_autocomplete(interaction: discord.Interaction, current: str):
+    try:
+        with open("eggs.json", "r", encoding="utf-8") as f:
+            all_eggs = json.load(f)
+    except FileNotFoundError:
+        return [app_commands.Choice(name="❌ Fichier eggs.json introuvable", value="error")]
+
+    current_lower = current.lower()
+    suggestions = []
+
+    for egg in all_eggs:
+        name = egg.get("name", "Unknown")
+        identifier = egg.get("identifier", "")
+        rarity = egg.get("rarity", "")
+        price = egg.get("base_value", 0)
+
+        if current_lower in name.lower() or current_lower in identifier.lower():
+            emoji = {
+                "Common": "🟢", "Uncommon": "🔵", "Rare": "🟣",
+                "Epic": "🟠", "Legendary": "🟡", "Mythical": "🔴",
+                "Divine": "✨"
+            }.get(rarity, "🥚")
+
+            display = f"{emoji} {name}"
+            if rarity: display += f" ({rarity})"
+            if price: display += f" - {price}"
+
+            value = identifier if identifier else name.lower()
+            suggestions.append(app_commands.Choice(name=display[:100], value=value))
+
+    return suggestions[:25]
+
+@bot.tree.command(
+    name="list_egg_roles",
+    description="Affiche tous les œufs configurés avec leurs rôles"
+)
+async def list_egg_roles(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+
+    try:
+        if not os.path.exists("egg_roles.json"):
+            await interaction.followup.send("❌ Aucun œuf configuré.", ephemeral=True)
+            return
+
+        with open("egg_roles.json", "r", encoding="utf-8") as f:
+            egg_roles = json.load(f)
+
+        guild_id = str(interaction.guild_id)
+        if guild_id not in egg_roles or not egg_roles[guild_id]:
+            await interaction.followup.send("❌ Aucun œuf configuré pour ce serveur.", ephemeral=True)
+            return
+
+        with open("eggs.json", "r", encoding="utf-8") as f:
+            all_eggs = json.load(f)
+            eggs_by_id = {
+                egg.get("identifier", egg["name"].lower()): egg
+                for egg in all_eggs
+            }
+
+        embed = discord.Embed(
+            title="🥚 Œufs configurés",
+            description="Liste des œufs avec leurs rôles associés",
+            color=0x4CAF50
+        )
+
+        for egg_key, role_id in egg_roles[guild_id].items():
+            egg = eggs_by_id.get(egg_key, {})
+            name = egg.get("name", egg_key.title())
+            rarity = egg.get("rarity", "Unknown")
+            price = egg.get("base_value", "Inconnu")
+            role = interaction.guild.get_role(role_id)
+            role_mention = role.mention if role else f"❌ (ID: {role_id})"
+
+            emoji = {
+                "Common": "🟢", "Uncommon": "🔵", "Rare": "🟣",
+                "Epic": "🟠", "Legendary": "🟡", "Mythical": "🔴",
+                "Divine": "✨"
+            }.get(rarity, "🥚")
+
+            embed.add_field(
+                name=f"{emoji} {name}",
+                value=f"Rôle: {role_mention}\nValeur: {price}",
+                inline=False
+            )
+
+        await interaction.followup.send(embed=embed, ephemeral=True)
+
+    except Exception as e:
+        await interaction.followup.send(f"❌ Erreur : {str(e)}", ephemeral=True)
+
+@bot.tree.command(
+    name="remove_egg_role",
+    description="Supprime l'association d'un œuf avec un rôle"
+)
+@app_commands.describe(egg="Nom de l'œuf à supprimer")
+async def remove_egg_role(interaction: discord.Interaction, egg: str):
+    await interaction.response.defer(ephemeral=True)
+
+    try:
+        if not os.path.exists("egg_roles.json"):
+            await interaction.followup.send("❌ Aucun œuf configuré.", ephemeral=True)
+            return
+
+        with open("egg_roles.json", "r", encoding="utf-8") as f:
+            egg_roles = json.load(f)
+
+        guild_id = str(interaction.guild_id)
+        egg_key = egg.lower().strip()
+
+        if guild_id not in egg_roles or egg_key not in egg_roles[guild_id]:
+            await interaction.followup.send(f"❌ L'œuf **{egg}** n'est pas configuré.", ephemeral=True)
+            return
+
+        del egg_roles[guild_id][egg_key]
+        if not egg_roles[guild_id]:
+            del egg_roles[guild_id]
+
+        with open("egg_roles.json", "w", encoding="utf-8") as f:
+            json.dump(egg_roles, f, ensure_ascii=False, indent=4)
+
+        await interaction.followup.send(f"✅ L'œuf **{egg}** a été supprimé.", ephemeral=True)
+
+    except Exception as e:
+        await interaction.followup.send(f"❌ Erreur : {str(e)}", ephemeral=True)
+@remove_egg_role.autocomplete("egg")
+async def remove_egg_autocomplete(interaction: discord.Interaction, current: str):
+    try:
+        with open("egg_roles.json", "r", encoding="utf-8") as f:
+            egg_roles = json.load(f)
+
+        guild_id = str(interaction.guild_id)
+        if guild_id not in egg_roles:
+            return []
+
+        configured_eggs = egg_roles[guild_id].keys()
+
+        try:
+            with open("eggs.json", "r", encoding="utf-8") as f:
+                all_eggs = json.load(f)
+                egg_info = {
+                    egg.get("identifier", egg["name"].lower()): egg for egg in all_eggs
+                }
+        except:
+            egg_info = {}
+
+        suggestions = []
+        current_lower = current.lower()
+
+        for egg_key in configured_eggs:
+            egg = egg_info.get(egg_key, {})
+            name = egg.get("name", egg_key.title())
+            if current_lower in name.lower() or current_lower in egg_key:
+                rarity = egg.get("rarity", "")
+                emoji = {
+                    "Common": "🟢", "Uncommon": "🔵", "Rare": "🟣",
+                    "Epic": "🟠", "Legendary": "🟡", "Mythical": "🔴",
+                    "Divine": "✨"
+                }.get(rarity, "🥚")
+
+                suggestions.append(app_commands.Choice(name=f"{emoji} {name}", value=egg_key))
+
+        return suggestions[:25]
+
+    except Exception as e:
+        return [app_commands.Choice(name=f"❌ Erreur : {str(e)}", value="error")]
+
+
 # Démarrage du bot et le serveur web
 subprocess.run(['python', '-m', 'playwright', 'install']) #pour la cloud version
 delay = 3000 / 1000  # Convertir millisecondes en secondes

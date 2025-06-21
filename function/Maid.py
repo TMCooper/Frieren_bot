@@ -486,9 +486,37 @@ class Maid:
 
                     if identifier and identifier in role_map:
                         ping_roles.add(role_map[identifier])
+
         except Exception as e:
             print(f"Erreur lors du chargement des rôles gear à ping : {e}")
             
+        try:
+            with open("egg_roles.json", "r", encoding="utf-8") as f:
+                egg_roles = json.load(f)
+
+            if guild_id in egg_roles:
+                role_map = egg_roles[guild_id]
+
+                # Charger eggs.json pour faire correspondre name → identifier
+                with open("eggs.json", "r", encoding="utf-8") as f:
+                    all_eggs = json.load(f)
+
+                # Créer un dictionnaire {name.lower(): identifier}
+                name_to_identifier = {
+                    egg["name"].lower(): egg.get("identifier", egg["name"].lower())
+                    for egg in all_eggs
+                }
+
+                egg_items = stock_by_category.get("Eggs", [])
+                for item in egg_items:
+                    name_lower = item["name"].lower()
+                    identifier = name_to_identifier.get(name_lower)
+
+                    if identifier and identifier in role_map:
+                        ping_roles.add(role_map[identifier])
+
+        except Exception as e:
+            print(f"Erreur lors du chargement des rôles egg à ping : {e}")
         # Construire les mentions si il y en a
         if ping_roles:
             mentions_content = " ".join(f"<@&{role_id}>" for role_id in ping_roles)
@@ -674,3 +702,63 @@ class Maid:
             json.dump(gears, f, ensure_ascii=False, indent=4)
 
         return print(f"{len(gears)} équipements extraits depuis le HTML avec succès.")
+    
+    @staticmethod
+    async def extract_egg_names():
+
+        url = "https://growagardenpro.com/eggs/"
+        soup = await Yui.request(url)
+
+        eggs = []
+
+        # Sélectionner toutes les cartes d'œufs
+        cards = soup.select('a[href^="/eggs/"]')
+
+        for card in cards:
+            try:
+                name = card.select_one("h3").text.strip()
+                url_egg = "https://growagardenpro.com" + card["href"]
+                img_tag = card.select_one("img")
+                image = img_tag["src"] if img_tag else None
+                if image and image.startswith("/"):
+                    image = "https://growagardenpro.com" + image
+
+                egg = {
+                    "name": name,
+                    "url": url_egg,
+                    "image": image,
+                    "rarity": None,
+                    "available": None,
+                    "base_value": None
+                }
+
+                # Extraire les badges (rareté notamment)
+                badges = card.select(".absolute .text-xs")
+                for badge in badges:
+                    text = badge.text.strip().lower()
+                    if text in ["common", "uncommon", "rare", "legendary", "mythical", "divine", "unknown"]:
+                        egg["rarity"] = text.title()
+
+                # Disponibilité (Yes / No)
+                available_tag = card.find("span", string=lambda x: x and x.lower() in ["yes", "no"])
+                if available_tag:
+                    egg["available"] = available_tag.text.strip().lower() == "yes"
+
+                # Valeur de base (Base Value)
+                value_block = card.select_one("div:has(span:contains('Base Value'))")
+                if value_block:
+                    value_text = value_block.select_one("span.font-medium.text-white")
+                    if value_text:
+                        egg["base_value"] = value_text.text.replace(",", "").strip()
+
+                eggs.append(egg)
+
+            except Exception as e:
+                print(f"[Erreur sur une carte d'œuf] {e}")
+                continue
+
+        # Sauvegarde JSON
+        with open("eggs.json", "w", encoding="utf-8") as f:
+            json.dump(eggs, f, ensure_ascii=False, indent=4)
+
+        return f"{len(eggs)} œufs extraits depuis le HTML avec succès."

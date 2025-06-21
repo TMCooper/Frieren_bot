@@ -91,5 +91,6 @@ class Holo:
 
             await Maid.extract_gear_names()
             await Maid.extract_fruit_names()
+            await Maid.extract_egg_names()
         else :
             return "Permission d'actualisation non accorder"
