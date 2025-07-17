@@ -41,7 +41,7 @@ class Yui:
 
             # Attendre que le contenu dynamique soit chargé
             await page.wait_for_selector('body')  # S'assurer que la page est complètement chargée
-            # await page.wait_for_timeout(2000)
+            await page.wait_for_timeout(2000)
 
             # Récupérer le HTML après exécution du JavaScript
             page_source = await page.content()
