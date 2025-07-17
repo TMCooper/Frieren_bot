@@ -20,3 +20,5 @@ gear_roles.json
 gear.json
 eggs.json
 egg_roles.json
+import_finder.py
+scrap.py

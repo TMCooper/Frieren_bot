@@ -530,7 +530,7 @@ async def dashboard(interaction: discord.Interaction):
 
 @bot.tree.command(
     name="setup_aga",
-    description="Initialise le market de grow a garden avec envoi automatique toutes les 5 minutes"
+    description="(Actuellement non fonctionnelle) Initialise le market de grow a garden avec envoi automatique toutes les 5 minutes"
 )
 async def setup_aga(interaction: discord.Interaction):
     guild_id = interaction.guild_id
@@ -622,7 +622,7 @@ async def aga_recurring_task(guild_id):
 
 @bot.tree.command(
     name="imediat_aga",
-    description="Test immédiat du market AGA avec mentions des fruits et gears"
+    description="(Actuellement non fonctionnelle) Affiche immédiatement l'état du market GAG avec mentions des fruits et gears"
 )
 async def imediat_aga(interaction: discord.Interaction):
     await interaction.response.defer()
