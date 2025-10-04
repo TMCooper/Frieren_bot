@@ -235,10 +235,11 @@ async def shudown(interaction: discord.Interaction):
     description="redémarre le bot",
 )
 async def reboot(interaction: discord.Interaction):
-    await interaction.response.defer()
-    msg = await Holo.reboot(bot, interaction.user.id, interaction)
-    if msg:
-        await interaction.followup.send(msg)
+    if interaction.user.id != DEV_ID:
+        await interaction.response.send_message("❌ Vous n'êtes pas autorisé à utiliser cette commande.", ephemeral=True)
+        return
+    await interaction.response.send_message("✅ Le bot est en train de redémarrer...")
+    Holo.reboot()
 
 # Commande : /anime_refresh
 @bot.tree.command(
@@ -1650,7 +1651,8 @@ async def changeStatus(interaction: discord.Interaction, status: app_commands.Ch
     await interaction.followup.send(f'Status changer avec succès vers : {status.value}') # Ajouté une verification pas id
 
 # Démarrage du bot et le serveur web
-subprocess.run('source ./venv/bin/activate', shell=True)
+# subprocess.run('source ./venv/bin/activate', shell=True)
+subprocess.run('. ./venv/bin/activate', shell=True)
 subprocess.run(['python', '-m', 'playwright', 'install']) #pour la cloud version
 delay = 3000 / 1000  # Convertir millisecondes en secondes
 time.sleep(delay)  # Pause de 3 secondes
