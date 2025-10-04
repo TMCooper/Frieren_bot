@@ -9,6 +9,7 @@ import datetime
 import time
 import platform
 import asyncio
+from typing import Optional
 import psutil # type: ignore
 from dotenv import load_dotenv
 from function.Maid import Maid
@@ -1622,6 +1623,24 @@ async def changeStatus(interaction: discord.Interaction, status: app_commands.Ch
     await Holo.changeStatus(status.value, bot)
     await interaction.followup.send(f'Status changer avec succès vers : {status.name}') # Ajouté une verification pas id
 
+@bot.tree.command(
+    name="changeactivity",
+    description="Change l'activité du bot"
+)
+@app_commands.describe(activite="Activité disponible : ")
+@app_commands.choices(activite=[
+    app_commands.Choice(name="Joue", value="playing"),
+    app_commands.Choice(name="Stream", value="streaming"),
+    app_commands.Choice(name="Ecoute", value="listening"),
+    app_commands.Choice(name="Compétition", value="competing"),
+    app_commands.Choice(name="Regarde", value="watching") 
+])
+@app_commands.describe(nom="Nom du gear", stream_url="Url du stream")
+async def changeStatus(interaction: discord.Interaction, activite: app_commands.Choice[str], nom: str, stream_url: Optional[str] = None):
+    # Ajouté une protection pour le gérant du bot uniquement
+    await interaction.response.defer()
+    await Holo.changeActivity(interaction, activite, nom, stream_url, bot)
+    # await interaction.followup.send("Status bien changer !")
 
 # Démarrage du bot et le serveur web
 subprocess.run(['python', '-m', 'playwright', 'install']) #pour la cloud version

@@ -107,9 +107,16 @@ class Holo:
         
         return status
     
-    async def changeActivity(bot): #Fonction a update acutellement incomplete
-        # await bot.change_presence(activity=discord.Streaming(name='My Stream', url=your_url) ligne d'exemple a prendre en charge pour plus tard
-        await bot.change_presence(
-            status=discord.Status.online,
-            activity=discord.Activity(type=discord.ActivityType.playing, name="Minecraft")
-        )
+    async def changeActivity(interaction, activite, nom, stream_url, bot): #Fonction a update acutellement incomplete
+        if activite.value != "streaming":
+            await bot.change_presence(
+                activity=discord.Activity(type=discord.ActivityType[activite.value] , name=nom)
+            )
+            await interaction.followup.send("Le status a bien été changé !")
+
+        else:
+            if not stream_url:
+                await interaction.followup.send("Tu dois fournir un lien Twitch/YouTube pour le mode streaming")
+            else:
+                await bot.change_presence(activity=discord.Streaming(name=nom, url=stream_url))
+                await interaction.followup.send("Le status a bien été changé !")
