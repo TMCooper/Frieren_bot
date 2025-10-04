@@ -94,3 +94,22 @@ class Holo:
             await Maid.extract_egg_names()
         else :
             return "Permission d'actualisation non accorder"
+        
+    async def changeStatus(status, bot):
+        if status == "do_not_disturb":
+            await bot.change_presence(status=discord.Status.do_not_disturb)
+        elif status == "idle":
+            await bot.change_presence(status=discord.Status.idle)
+        elif status == "offline":
+            await bot.change_presence(status=discord.Status.offline)
+        elif status == "online":
+            await bot.change_presence(status=discord.Status.online)
+        
+        return status
+    
+    async def changeActivity(bot): #Fonction a update acutellement incomplete
+        # await bot.change_presence(activity=discord.Streaming(name='My Stream', url=your_url) ligne d'exemple a prendre en charge pour plus tard
+        await bot.change_presence(
+            status=discord.Status.online,
+            activity=discord.Activity(type=discord.ActivityType.playing, name="Minecraft")
+        )

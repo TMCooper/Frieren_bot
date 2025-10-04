@@ -1605,6 +1605,22 @@ async def remove_egg_autocomplete(interaction: discord.Interaction, current: str
 
     except Exception as e:
         return [app_commands.Choice(name=f"❌ Erreur : {str(e)}", value="error")]
+    
+@bot.tree.command(
+    name="changestatus",
+    description="Change le status du bot"
+)
+@app_commands.describe(status="Satus disponible : ")
+@app_commands.choices(status=[
+    app_commands.Choice(name="Online", value="online"),
+    app_commands.Choice(name="Offline", value="offline"),
+    app_commands.Choice(name="Ne pas déranger", value="do_not_disturb"),
+    app_commands.Choice(name="Inactif", value="idle")
+])
+async def changeStatus(interaction: discord.Interaction, status: app_commands.Choice[str]):
+    await interaction.response.defer()
+    await Holo.changeStatus(status.value, bot)
+    await interaction.followup.send(f'Status changer avec succès vers : {status.value}') # Ajouté une verification pas id
 
 
 # Démarrage du bot et le serveur web

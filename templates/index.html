@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Friren Bot</title>
+    
+    <!-- Lien vers notre fichier CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- Lien pour les polices de caractères de Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lien pour les icônes de Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <!-- Barre latérale avec les infos du bot -->
+        <div class="sidebar">
+            <div class="bot-info">
+                <img src="{{ url_for('static', filename='img/Frieren.gif') }}" alt="Avatar de Yui" class="avatar">
+                <h2>Frieren</h2>
+                <p>Bot de TMCooper</p>
+            </div>
+            <nav>
+                <ul>
+                    <li class="active"><a href="#"><i class="fas fa-home"></i> Accueil</a></li>
+                    <li><a href="#"><i class="fas fa-cogs"></i> Commandes</a></li>
+                    <li><a href="#"><i class="fas fa-server"></i> Serveurs</a></li>
+                </ul>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="#">Inviter le bot</a>
+            </div>
+        </div>
+
+        <!-- Contenu principal -->
+        <div class="main-content">
+            <header>
+                <h1>Tableau de Bord - Yui</h1>
+            </header>
+
+            <main>
+                <!-- Carte de statut -->
+                <div class="status-card {{ 'online' if bot_status == 'En ligne' else 'offline' }}">
+                    <i class="fas fa-power-off"></i>
+                    <p>Frieren est bien **{{ bot_status }}**...</p>
+                </div>
+
+                <!-- Grille de statistiques -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <i class="fas fa-server"></i>
+                        <h3>Serveurs</h3>
+                        <p class="stat-number">{{ server_count }}</p>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-users"></i>
+                        <h3>Utilisateurs</h3>
+                        <p class="stat-number">{{ user_count }}</p>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-heartbeat"></i>
+                        <h3>Latence</h3>
+                        <p class="stat-number">{{ latency }} ms</p>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+</body>
+</html>

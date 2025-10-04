@@ -1,0 +1,180 @@
+/* Importation de la police d'écriture */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+/* Réinitialisation de base et configuration globale */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #1e1e2f; /* Fond sombre */
+    color: #dcdce6; /* Texte clair */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.dashboard-container {
+    display: flex;
+    width: 90%;
+    max-width: 1400px;
+    height: 90vh;
+    background-color: #27293d; /* Fond un peu plus clair */
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    overflow: hidden;
+}
+
+/* --- Barre latérale --- */
+.sidebar {
+    background-color: #1b1c2b; /* Encore plus sombre */
+    padding: 2rem;
+    width: 250px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-right: 1px solid #3a3b4f;
+}
+
+.sidebar .bot-info {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.sidebar .avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 3px solid #7a5afc;
+    margin-bottom: 1rem;
+}
+
+.sidebar h2 {
+    color: #fff;
+    font-size: 1.5rem;
+}
+
+.sidebar p {
+    color: #8e92b5;
+    font-size: 0.9rem;
+}
+
+.sidebar nav {
+    flex-grow: 1;
+    width: 100%;
+}
+
+.sidebar nav ul {
+    list-style: none;
+}
+
+.sidebar nav a {
+    display: block;
+    color: #dcdce6;
+    text-decoration: none;
+    padding: 1rem;
+    border-radius: 10px;
+    margin-bottom: 0.5rem;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.sidebar nav a i {
+    margin-right: 1rem;
+    width: 20px;
+}
+
+.sidebar nav a:hover, .sidebar nav li.active a {
+    background-color: #7a5afc; /* Couleur d'accentuation violet */
+    color: #fff;
+}
+
+.sidebar .sidebar-footer a {
+    background-color: #4caf50;
+    color: white;
+    text-align: center;
+    padding: 0.8rem;
+    border-radius: 10px;
+    text-decoration: none;
+    display: block;
+    transition: background-color 0.3s;
+}
+
+.sidebar .sidebar-footer a:hover {
+    background-color: #45a049;
+}
+
+
+/* --- Contenu principal --- */
+.main-content {
+    flex-grow: 1;
+    padding: 2rem 3rem;
+    overflow-y: auto;
+}
+
+.main-content header {
+    margin-bottom: 2rem;
+}
+
+.main-content h1 {
+    font-size: 2.5rem;
+    color: #fff;
+}
+
+/* --- Cartes de statut et de stats --- */
+.status-card {
+    background: #3a3b4f;
+    padding: 1.5rem;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+    border-left: 5px solid;
+}
+.status-card.online { border-color: #4caf50; color: #4caf50; }
+.status-card.offline { border-color: #f44336; color: #f44336; }
+
+.status-card i {
+    font-size: 1.5rem;
+    margin-right: 1.5rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.stat-card {
+    background-color: #2f3148;
+    padding: 2rem;
+    border-radius: 15px;
+    text-align: center;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+
+.stat-card i {
+    font-size: 2.5rem;
+    color: #7a5afc; /* Violet */
+    margin-bottom: 1rem;
+}
+
+.stat-card h3 {
+    color: #dcdce6;
+    margin-bottom: 0.5rem;
+}
+
+.stat-card .stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff;
+}
