@@ -1650,7 +1650,7 @@ async def changeStatus(interaction: discord.Interaction, status: app_commands.Ch
     await interaction.followup.send(f'Status changer avec succès vers : {status.value}') # Ajouté une verification pas id
 
 # Démarrage du bot et le serveur web
-subprocess.run('source ./venv/bin/activate', shell=True)
+subprocess.run('source ./Frieren/bin/activate', shell=True)
 subprocess.run(['python', '-m', 'playwright', 'install']) #pour la cloud version
 delay = 3000 / 1000  # Convertir millisecondes en secondes
 time.sleep(delay)  # Pause de 3 secondes
