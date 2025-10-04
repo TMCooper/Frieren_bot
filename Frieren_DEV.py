@@ -1620,7 +1620,7 @@ async def remove_egg_autocomplete(interaction: discord.Interaction, current: str
 async def changeStatus(interaction: discord.Interaction, status: app_commands.Choice[str]):
     await interaction.response.defer()
     await Holo.changeStatus(status.value, bot)
-    await interaction.followup.send(f'Status changer avec succès vers : {status.value}') # Ajouté une verification pas id
+    await interaction.followup.send(f'Status changer avec succès vers : {status.name}') # Ajouté une verification pas id
 
 
 # Démarrage du bot et le serveur web

@@ -530,7 +530,7 @@ async def dashboard(interaction: discord.Interaction):
 
 @bot.tree.command(
     name="setup_aga",
-    description="(Actuellement non fonctionnelle) Initialise le market de grow a garden avec envoi automatique toutes les 5 minutes"
+    description="Initialise le market de grow a garden avec envoi automatique toutes les 5 minutes"
 )
 async def setup_aga(interaction: discord.Interaction):
     guild_id = interaction.guild_id
@@ -622,7 +622,7 @@ async def aga_recurring_task(guild_id):
 
 @bot.tree.command(
     name="imediat_aga",
-    description="(Actuellement non fonctionnelle) Affiche immédiatement l'état du market GAG avec mentions des fruits et gears"
+    description="Affiche immédiatement l'état du market GAG avec mentions des fruits et gears"
 )
 async def imediat_aga(interaction: discord.Interaction):
     await interaction.response.defer()
@@ -1647,7 +1647,7 @@ async def remove_egg_autocomplete(interaction: discord.Interaction, current: str
 async def changeStatus(interaction: discord.Interaction, status: app_commands.Choice[str]):
     await interaction.response.defer()
     await Holo.changeStatus(status.value, bot)
-    await interaction.followup.send(f'Status changer avec succès vers : {status.value}') # Ajouté une verification pas id
+    await interaction.followup.send(f'Status changer avec succès vers : {status.name}') # Ajouté une verification pas id
 
 # Démarrage du bot et le serveur web
 subprocess.run('source ./Frieren/bin/activate', shell=True)
