@@ -1,4 +1,4 @@
-import random
+import random, requests
 from playwright.async_api import async_playwright
 from bs4 import BeautifulSoup
 from flask import Flask
@@ -9,6 +9,29 @@ from threading import Thread
 app = Flask('')
 
 class Yui:
+
+    HEADERS = {
+        'authority': 'p16-ad-sg.tiktokcdn.com',
+        'method': 'GET',
+        'path': '/obj/ad-site-i18n-sg/202508125d0d6bceedbe1123419c9459',
+        'scheme': 'https',
+        'accept': '*/*',
+        'accept-encoding': 'gzip, deflate, br, zstd',
+        'accept-language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7,ja;q=0.6,de;q=0.5,zh-CN;q=0.4,zh;q=0.3,ru;q=0.2,es;q=0.1,ko;q=0.1,vi;q=0.1,pl;q=0.1',
+        'cache-control': 'no-cache',
+        'origin': 'https://smoothpre.com',
+        'pragma': 'no-cache',
+        'priority': 'u=1, i',
+        'referer': 'https://smoothpre.com/',
+        'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138", "Opera GX";v="122"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'cross-site',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 OPR/122.0.0.0',
+        }
+    
     @staticmethod
     async def request(URL):
         async with async_playwright() as p:
@@ -122,6 +145,10 @@ class Yui:
         soup = await Yui.request(URL)
         
         return soup
+
+    async def simpleRequest(URL):
+        reponse_get = requests.get(URL, headers=Yui.HEADERS).status_code
+        return(f"Votre url : ``{URL}`` a renvoier le code : ``{reponse_get}``")
 
     @app.route('/')
     def home():

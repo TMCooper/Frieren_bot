@@ -1657,12 +1657,22 @@ async def changeStatus(interaction: discord.Interaction, status: app_commands.Ch
     app_commands.Choice(name="Compétition", value="competing"),
     app_commands.Choice(name="Regarde", value="watching") 
 ])
-@app_commands.describe(nom="Nom du gear", stream_url="Url du stream")
+@app_commands.describe(nom="Nom", stream_url="Url du stream")
 async def changeStatus(interaction: discord.Interaction, activite: app_commands.Choice[str], nom: str, stream_url: Optional[str] = None):
     # Ajouté une protection pour le gérant du bot uniquement
     await interaction.response.defer()
     await Holo.changeActivity(interaction, activite, nom, stream_url, bot)
     # await interaction.followup.send("Status bien changer !")
+
+@bot.tree.command(
+    name="ping",
+    description="Ping lien de votre choix"
+)
+@app_commands.describe(url="Url de votre choix")
+async def pingUrl(interaction: discord.Interaction, url: str):
+    await interaction.response.defer()
+    reponse = await Yui.simpleRequest(url)
+    await interaction.followup.send(reponse)
 
 # Démarrage du bot et le serveur web
 subprocess.run('source ./Frieren/bin/activate', shell=True)
