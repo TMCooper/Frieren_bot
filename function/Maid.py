@@ -2,13 +2,12 @@ from function.Yui import Yui
 from playwright.async_api import async_playwright
 from dotenv import load_dotenv
 from bs4 import BeautifulSoup
-from collections import defaultdict
-import time
 import datetime
 import json
 import logging
 import discord
 import os
+import genshin
 
 load_dotenv()
 
@@ -259,7 +258,7 @@ class Maid:
             links = []
 
             # Vérifier si le fichier existe déjà
-            anime_file = "anime.json"
+            anime_file = "data/anime.json"
             if os.path.exists(anime_file) and os.path.getsize(anime_file) > 0:
                 with open(anime_file, "r", encoding="utf-8") as f:
                     try:
@@ -448,7 +447,7 @@ class Maid:
         ping_roles = set()
 
         try:
-            with open("fruit_roles.json", "r", encoding="utf-8") as f:
+            with open("data/fruit_roles.json", "r", encoding="utf-8") as f:
                 fruit_roles = json.load(f)
             
             if guild_id in fruit_roles:
@@ -463,14 +462,14 @@ class Maid:
             print(f"Erreur lors du chargement des rôles à ping : {e}")
         
         try:
-            with open("gear_roles.json", "r", encoding="utf-8") as f:
+            with open("data/gear_roles.json", "r", encoding="utf-8") as f:
                 gear_roles = json.load(f)
 
             if guild_id in gear_roles:
                 role_map = gear_roles[guild_id]
 
                 # Charger gear.json pour faire correspondre name → identifier
-                with open("gear.json", "r", encoding="utf-8") as f:
+                with open("data/gear.json", "r", encoding="utf-8") as f:
                     all_gears = json.load(f)
 
                 # Créer un dictionnaire {name.lower(): identifier}
@@ -491,14 +490,14 @@ class Maid:
             print(f"Erreur lors du chargement des rôles gear à ping : {e}")
             
         try:
-            with open("egg_roles.json", "r", encoding="utf-8") as f:
+            with open("data/egg_roles.json", "r", encoding="utf-8") as f:
                 egg_roles = json.load(f)
 
             if guild_id in egg_roles:
                 role_map = egg_roles[guild_id]
 
                 # Charger eggs.json pour faire correspondre name → identifier
-                with open("eggs.json", "r", encoding="utf-8") as f:
+                with open("data/eggs.json", "r", encoding="utf-8") as f:
                     all_eggs = json.load(f)
 
                 # Créer un dictionnaire {name.lower(): identifier}
@@ -552,6 +551,20 @@ class Maid:
         next_time += datetime.timedelta(seconds=80)
         
         # Calculer le temps d'attente en secondes
+        wait_seconds = (next_time - now).total_seconds()
+        return wait_seconds, next_time
+    
+    def get_next_24hours_interval(buffer_seconds=0):
+        """
+        Retourne le temps d'attente jusqu'au prochain intervalle de 24h
+        depuis maintenant, avec un buffer optionnel.
+        """
+        now = datetime.datetime.now()
+        next_time = now + datetime.timedelta(hours=24)
+
+        # Ajouter un buffer optionnel (par ex. 30 secondes)
+        next_time += datetime.timedelta(seconds=buffer_seconds)
+
         wait_seconds = (next_time - now).total_seconds()
         return wait_seconds, next_time
     
@@ -634,9 +647,10 @@ class Maid:
                 print(f"[Erreur sur une carte de fruit] {e}")
                 continue
 
-        # Sauvegarde JSON
-        with open("fruits.json", "w", encoding="utf-8") as f:
-            json.dump(fruits, f, ensure_ascii=False, indent=4)
+        fruits_data = {"fruits": fruits}
+        os.makedirs("data", exist_ok=True)
+        with open("data/fruits.json", "w", encoding="utf-8") as f:
+            json.dump(fruits_data, f, ensure_ascii=False, indent=4)
 
         return print(f"{len(fruits)} fruits extraits depuis le HTML avec succès.")
 
@@ -697,9 +711,10 @@ class Maid:
                 print(f"[Erreur sur une carte d’équipement] {e}")
                 continue
 
-        # Sauvegarde JSON
-        with open("gear.json", "w", encoding="utf-8") as f:
-            json.dump(gears, f, ensure_ascii=False, indent=4)
+        gear_data = {"gear": gears}
+        os.makedirs("data", exist_ok=True)
+        with open("data/gear.json", "w", encoding="utf-8") as f:
+            json.dump(gear_data, f, ensure_ascii=False, indent=4)
 
         return print(f"{len(gears)} équipements extraits depuis le HTML avec succès.")
     
@@ -757,8 +772,34 @@ class Maid:
                 print(f"[Erreur sur une carte d'œuf] {e}")
                 continue
 
-        # Sauvegarde JSON
-        with open("eggs.json", "w", encoding="utf-8") as f:
-            json.dump(eggs, f, ensure_ascii=False, indent=4)
+        eggs_data = {"eggs": eggs}
+        os.makedirs("data", exist_ok=True)
+        with open("data/eggs.json", "w", encoding="utf-8") as f:
+            json.dump(eggs_data, f, ensure_ascii=False, indent=4)
 
         return f"{len(eggs)} œufs extraits depuis le HTML avec succès."
+
+    @staticmethod
+    async def genshinCheckIn(ltuid_v2, ltoken_v2, uid):
+        cookies = {
+        "ltuid_v2": ltuid_v2,
+        "ltoken_v2": ltoken_v2
+        }
+
+        # Client pour Genshin Impact
+        client = genshin.Client(cookies, uid=uid, game=genshin.Game.GENSHIN)
+
+        user = await client.get_genshin_user()
+
+        try:
+            reward = await client.claim_daily_reward()
+        except genshin.AlreadyClaimed:
+            print("Daily reward already claimed")
+        else:
+            print(f"Claimed {reward.amount}x {reward.name}")
+
+        # signed_in, claimed_rewards = await client.get_reward_info()
+        # print(f"Signed in: {signed_in} | Total claimed rewards: {claimed_rewards}")
+
+        # user = await client.get_genshin_user()
+        # print(f"User has a total of {user.stats.characters} characters")

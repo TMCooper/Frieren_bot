@@ -15,15 +15,15 @@ class Mita:
             # logging.basicConfig(level=logging.DEBUG, filename='debug.log', filemode='w')
             logging.debug("Chemin actuel : %s", os.getcwd())
             try:
-                with open('games.json', 'r', encoding='utf-8') as file:
+                with open('data/games.json', 'r', encoding='utf-8') as file:
                     content = file.read()
-                    logging.debug("Contenu de games.json : %s", content)
+                    logging.debug("Contenu de data/games.json : %s", content)
                     return True  # Indique que le fichier est présent
             except FileNotFoundError:
-                logging.error("Le fichier games.json est introuvable.")
+                logging.error("Le fichier data/games.json est introuvable.")
                 return False
             except UnicodeDecodeError as e:
-                logging.error("Erreur d'encodage lors de la lecture du fichier games.json : %s", str(e))
+                logging.error("Erreur d'encodage lors de la lecture du fichier data/games.json : %s", str(e))
                 return False
             except json.JSONDecodeError as e:
                 logging.error("Erreur lors de l'analyse JSON : %s", str(e))

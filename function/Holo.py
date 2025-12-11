@@ -62,10 +62,10 @@ class Holo:
     async def purge_anime_file(id, interaction):
         if int(id) == int(DEV_ID):
             await interaction.followup.send("Purge du fichier anime.json...")
-            if os.path.exists('anime.json'):
-                os.remove('anime.json')
+            if os.path.exists('data/anime.json'):
+                os.remove('data/anime.json')
             # Crée un fichier vide
-            with open('anime.json', 'w') as f:
+            with open('data/anime.json', 'w') as f:
                 pass
         else:
             await interaction.followup.send("Vous n'êtes pas autorisé à purger le fichier...")
