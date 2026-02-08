@@ -2,12 +2,11 @@ from function.Yui import Yui
 from playwright.async_api import async_playwright
 from dotenv import load_dotenv
 from bs4 import BeautifulSoup
-import datetime
-import json
-import logging
-import discord
 import os
 import genshin
+import json
+import datetime
+import logging
 
 load_dotenv()
 
@@ -780,23 +779,40 @@ class Maid:
         return f"{len(eggs)} œufs extraits depuis le HTML avec succès."
 
     @staticmethod
-    async def genshinCheckIn(ltuid_v2, ltoken_v2, uid):
+    async def claim_daily_reward(ltuid_v2, ltoken_v2, uid, game=genshin.Game.GENSHIN):
         cookies = {
-        "ltuid_v2": ltuid_v2,
-        "ltoken_v2": ltoken_v2
+            "ltuid_v2": ltuid_v2,
+            "ltoken_v2": ltoken_v2
         }
 
-        # Client pour Genshin Impact
-        client = genshin.Client(cookies, uid=uid, game=genshin.Game.GENSHIN)
+        # Déterminer le nom du jeu pour le message et l'instance du client
+        game_names = {
+            genshin.Game.GENSHIN: "Genshin Impact",
+            genshin.Game.STARRAIL: "Honkai: Star Rail",
+            genshin.Game.ZZZ: "Zenless Zone Zero"
+        }
+        game_name = game_names.get(game, "Jeu Inconnu")
 
-        user = await client.get_genshin_user()
+        client = genshin.Client(cookies, uid=uid, game=game)
 
         try:
             reward = await client.claim_daily_reward()
         except genshin.AlreadyClaimed:
-            print("Daily reward already claimed")
+            return f"❌ Daily reward pour **{game_name}** déjà récupéré !"
+        except genshin.InvalidCookies:
+            return f"❌ Cookies invalides ou expirés pour **{game_name}**. Veuillez vous reconnecter sur HoYoLAB et récupérer de nouveaux jetons."
+        except Exception as e:
+            error_msg = str(e)
+            if "-100" in error_msg or "10001" in error_msg:
+                return f"❌ Session expirée pour **{game_name}**. Veuillez mettre à jour vos cookies avec la commande de setup."
+            return f"❌ Erreur lors du claim pour **{game_name}** : {error_msg}"
         else:
-            print(f"Claimed {reward.amount}x {reward.name}")
+            return f"✅ Claim réussi pour **{game_name}** : {reward.amount}x {reward.name}"
+
+    @staticmethod
+    async def genshinCheckIn(ltuid_v2, ltoken_v2, uid):
+        # Garder la compatibilité avec l'ancien code si nécessaire
+        return await Maid.claim_daily_reward(ltuid_v2, ltoken_v2, uid, game=genshin.Game.GENSHIN)
 
         # signed_in, claimed_rewards = await client.get_reward_info()
         # print(f"Signed in: {signed_in} | Total claimed rewards: {claimed_rewards}")
