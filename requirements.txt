@@ -38,7 +38,7 @@ pydantic==2.12.5
 pydantic_core==2.41.5
 pyee==13.0.0
 python-dotenv==1.1.1
-pywin32==311
+# pywin32==311
 requests==2.32.4
 shadowcopy==0.0.4
 sniffio==1.3.1
