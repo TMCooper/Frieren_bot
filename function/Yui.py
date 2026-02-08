@@ -155,7 +155,7 @@ class Yui:
         return "Infomation de Yui : Frieren est bien en ligne..."
 
     def run():
-        app.run(host='0.0.0.0', port=8080)
+        app.run(host='0.0.0.0', port=5050)
 
     def alive():
         t = Thread(target=Yui.run)

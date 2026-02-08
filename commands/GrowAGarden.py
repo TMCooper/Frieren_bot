@@ -18,7 +18,7 @@ class GrowAGarden(commands.Cog):
             try:
                 # Calculer le temps d'attente jusqu'au prochain intervalle
                 wait_seconds, next_time = Maid.get_next_5min_interval()
-                print(f"[Guild {guild_id}] Attente de {wait_seconds:.1f} secondes jusqu'à {next_time.strftime('%H:%M:%S')}")
+                # print(f"[Guild {guild_id}] Attente de {wait_seconds:.1f} secondes jusqu'à {next_time.strftime('%H:%M:%S')}")
                 
                 # Attendre jusqu'au prochain intervalle
                 await asyncio.sleep(wait_seconds)

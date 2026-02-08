@@ -57,7 +57,7 @@ class Genshin(commands.Cog):
             try:
                 # Calculer le temps d'attente jusqu'au prochain intervalle
                 wait_seconds, next_time = Maid.get_next_24hours_interval()
-                print(f"[{task_key}] Attente de {wait_seconds:.1f} secondes jusqu'à {next_time.strftime('%H:%M:%S')}")
+                # print(f"[{task_key}] Attente de {wait_seconds:.1f} secondes jusqu'à {next_time.strftime('%H:%M:%S')}")
                 
                 await asyncio.sleep(wait_seconds)
                 
